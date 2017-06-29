@@ -607,9 +607,9 @@ public abstract class AbstractQueuedSynchronizer
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
-            node.prev = pred;
-            if (compareAndSetTail(pred, node)) {
-                pred.next = node;
+            node.prev = pred;   //node前缀指向pred,就是在tail后面添加一个结点
+            if (compareAndSetTail(pred, node)) {    //CAS ??    设置tail为node
+                pred.next = node;   //pred后缀指向node
                 return node;
             }
         }
@@ -973,6 +973,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Acquires in shared interruptible mode.
+     * 可中断的获取共享锁
      * @param arg the acquire argument
      */
     private void doAcquireSharedInterruptibly(int arg)
@@ -1193,10 +1194,10 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
-    public final void acquire(int arg) {
+    public final void acquire(int arg) {    //获取独占锁,忽略中断?
         if (!tryAcquire(arg) &&
-            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-            selfInterrupt();
+            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))  //尝试获取锁,否则就加入到独占锁等待队列(Linked队列)
+            selfInterrupt();    //响应中断
     }
 
     /**
@@ -1297,10 +1298,11 @@ public abstract class AbstractQueuedSynchronizer
      */
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
-        if (Thread.interrupted())
+        if (Thread.interrupted())   //检查当前线程中断状态
             throw new InterruptedException();
-        if (tryAcquireShared(arg) < 0)
+        if (tryAcquireShared(arg) < 0)  //<0代表获取共享锁失败,循环重试获取锁
             doAcquireSharedInterruptibly(arg);
+        //如果大于等于0,则不需要虚幻阻塞,直接通过
     }
 
     /**
@@ -1508,7 +1510,7 @@ public abstract class AbstractQueuedSynchronizer
      *         is at the head of the queue or the queue is empty
      * @since 1.7
      */
-    public final boolean hasQueuedPredecessors() {
+    public final boolean hasQueuedPredecessors() {  // 队列中有排在前面的线程
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
         // thread is first in queue.
@@ -1517,6 +1519,7 @@ public abstract class AbstractQueuedSynchronizer
         Node s;
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
+        // 1.头结点不等于尾结点  2.头结点的下一个为空 或者  3.头结点的下一个结点不是当前线程
     }
 
 

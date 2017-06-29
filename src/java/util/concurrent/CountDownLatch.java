@@ -34,8 +34,7 @@
  */
 
 package java.util.concurrent;
-import java.util.concurrent.locks.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * A synchronization aid that allows one or more threads to wait until
@@ -167,18 +166,19 @@ public class CountDownLatch {
         private static final long serialVersionUID = 4982264981922014374L;
 
         Sync(int count) {
-            setState(count);
+            setState(count);    //初始化计数数量
         }
 
         int getCount() {
-            return getState();
+            return getState();  //获取剩余计数
         }
 
-        protected int tryAcquireShared(int acquires) {
+        // 此处acquires参数在CountDownLatch中没有意义,因为CountDownLatch只关心CountDown调用的次数
+        protected int tryAcquireShared(int acquires) {  //获取共享锁,1表示成功,-1表示失败,获取失败会一直自旋阻塞
             return (getState() == 0) ? 1 : -1;
         }
 
-        protected boolean tryReleaseShared(int releases) {
+        protected boolean tryReleaseShared(int releases) {  //释放共享锁,releases也没有意义,调用一次tryReleaseShared方法,计数减1
             // Decrement count; signal when transition to zero
             for (;;) {
                 int c = getState();
@@ -197,7 +197,7 @@ public class CountDownLatch {
      * Constructs a {@code CountDownLatch} initialized with the given count.
      *
      * @param count the number of times {@link #countDown} must be invoked
-     *        before threads can pass through {@link #await}
+     *        before threads can pass through {@link #await}    //在线程通过之前,必须countDown的次数
      * @throws IllegalArgumentException if {@code count} is negative
      */
     public CountDownLatch(int count) {
@@ -209,7 +209,7 @@ public class CountDownLatch {
      * Causes the current thread to wait until the latch has counted down to
      * zero, unless the thread is {@linkplain Thread#interrupt interrupted}.
      *
-     * <p>If the current count is zero then this method returns immediately.
+     * <p>If the current count is zero then this method returns immediately.    //如果count等于0,方法立马返回
      *
      * <p>If the current count is greater than zero then the current
      * thread becomes disabled for thread scheduling purposes and lies
@@ -233,7 +233,7 @@ public class CountDownLatch {
      *         while waiting
      */
     public void await() throws InterruptedException {
-        sync.acquireSharedInterruptibly(1);
+        sync.acquireSharedInterruptibly(1);     //可中断的等待获取共享锁
     }
 
     /**
@@ -277,7 +277,7 @@ public class CountDownLatch {
      * @throws InterruptedException if the current thread is interrupted
      *         while waiting
      */
-    public boolean await(long timeout, TimeUnit unit)
+    public boolean await(long timeout, TimeUnit unit)   //可超时的等待获取共享锁
         throws InterruptedException {
         return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
     }
@@ -293,13 +293,13 @@ public class CountDownLatch {
      * <p>If the current count equals zero then nothing happens.
      */
     public void countDown() {
-        sync.releaseShared(1);
+        sync.releaseShared(1);  //countDown方法会释放共享锁
     }
 
     /**
      * Returns the current count.
      *
-     * <p>This method is typically used for debugging and testing purposes.
+     * <p>This method is typically used for debugging and testing purposes. //此方法用于Debug测试
      *
      * @return the current count
      */

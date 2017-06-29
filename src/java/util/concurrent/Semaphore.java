@@ -34,9 +34,9 @@
  */
 
 package java.util.concurrent;
-import java.util.*;
-import java.util.concurrent.locks.*;
-import java.util.concurrent.atomic.*;
+import java.util.Collection;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.util.concurrent.locks.Lock;
 
 /**
  * A counting semaphore.  Conceptually, a semaphore maintains a set of
@@ -185,7 +185,7 @@ public class Semaphore implements java.io.Serializable {
                 int remaining = available - acquires;
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))
-                    return remaining;
+                    return remaining;       //返回正数表示获取许可成功;返回0也表示获取成功,但是许可剩余0;返回负数需要重新获取
             }
         }
 
@@ -223,7 +223,7 @@ public class Semaphore implements java.io.Serializable {
     /**
      * NonFair version
      */
-    static final class NonfairSync extends Sync {
+    static final class NonfairSync extends Sync {   //非公平信号量,默认的
         private static final long serialVersionUID = -2694183684443567898L;
 
         NonfairSync(int permits) {
@@ -238,7 +238,7 @@ public class Semaphore implements java.io.Serializable {
     /**
      * Fair version
      */
-    static final class FairSync extends Sync {
+    static final class FairSync extends Sync {      //公平的
         private static final long serialVersionUID = 2014338818796000944L;
 
         FairSync(int permits) {
@@ -246,8 +246,8 @@ public class Semaphore implements java.io.Serializable {
         }
 
         protected int tryAcquireShared(int acquires) {
-            for (;;) {
-                if (hasQueuedPredecessors())
+            for (;;) {  //循环CAS
+                if (hasQueuedPredecessors())    //前面有等待的线程,立即返回-1,表示获取失败
                     return -1;
                 int available = getState();
                 int remaining = available - acquires;
