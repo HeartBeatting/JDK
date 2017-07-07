@@ -100,7 +100,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * The number of times this priority queue has been
      * <i>structurally modified</i>.  See AbstractList for gory details.
      */
-    private transient int modCount = 0;
+    private transient int modCount = 0;     //用于检测并发修改, 抛出ConcurrentModificationException异常的
 
     /**
      * Creates a <tt>PriorityQueue</tt> with the default initial capacity
@@ -108,7 +108,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * ordering (using <tt>Comparable</tt>).
      */
     public PriorityQueue() {
-        this(DEFAULT_INITIAL_CAPACITY, null);
+        this(DEFAULT_INITIAL_CAPACITY, null);   //null,表示用默认的排序方式; 为什么是11?
     }
 
     /**
@@ -121,7 +121,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * than 1
      */
     public PriorityQueue(int initialCapacity) {
-        this(initialCapacity, null);
+        this(initialCapacity, null);    //指定容量
     }
 
     /**
@@ -132,7 +132,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param comparator the comparator used to order this priority queue.
      * If <tt>null</tt> then the order depends on the elements' natural
      * ordering.
-     * @throws IllegalArgumentException if <tt>initialCapacity</tt> is less
+     * @throws IllegalArgumentException if <tt>initialCapacity</tt> is less     //todo 小于1为什么抛异常?
      * than 1
      */
     public PriorityQueue(int initialCapacity, 

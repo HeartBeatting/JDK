@@ -6,8 +6,7 @@
  */
 
 package java.util.concurrent;
-import java.util.concurrent.locks.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * A synchronization aid that allows one or more threads to wait until
@@ -130,15 +129,15 @@ public class CountDownLatch {
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
         Sync(int count) {
-            setState(count); 
+            setState(count);    //初始化计数器
         }
         
         int getCount() {
-            return getState();
+            return getState();  //获取计数器,都是读取的volatile,可以保证内存可见性,但是线程安全性怎么保证的?
         }
 
         public int tryAcquireShared(int acquires) {
-            return getState() == 0? 1 : -1;
+            return getState() == 0? 1 : -1;     //获取共享锁,如果计数器为0,返回1;否则返回-1 (AQS的acquireShared会调用->doAcquireShared,会阻塞?)
         }
         
         public boolean tryReleaseShared(int releases) {

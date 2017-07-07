@@ -303,6 +303,9 @@ public class HashMap<K,V>
      * Returns index for hash code h. 
      */
     static int indexFor(int h, int length) {
+        //由于lenght必须是2的次方,这时位运算&,正好和取模的结果一致
+        //相当于取模,做到了将数据平均分散到各个散列桶中
+        //位运算&(与), |(或), ^(异或)
         return h & (length-1);
     }
  

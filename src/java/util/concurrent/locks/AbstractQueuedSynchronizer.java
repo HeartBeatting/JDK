@@ -341,9 +341,9 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
         static final int SIGNAL    = -1;
         /** waitStatus value to indicate thread is waiting on condition */
         static final int CONDITION = -2;
-        /** Marker to indicate a node is waiting in shared mode */
-        static final Node SHARED = new Node();
-        /** Marker to indicate a node is waiting in exclusive mode */
+        /** Marker to indicate a node is waiting in shared mode */  //共享锁的作用? 肯定是比独占锁吞吐量高的
+        static final Node SHARED = new Node();                      //这个空的固定的Node是作为共享的锁, 相对应的等待的节点也是Node, 但是结构是Node(Thread thread, Node mode),会持有线程的引用
+        /** Marker to indicate a node is waiting in exclusive mode */   //排他锁
         static final Node EXCLUSIVE = null;
 
         /**
@@ -515,23 +515,23 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
      * @return node's predecessor
      */
     private Node enq(final Node node) {
-        for (;;) {
-            Node t = tail;
-            if (t == null) { // Must initialize
-                Node h = new Node(); // Dummy header
-                h.next = node;
-                node.prev = h;
-                if (compareAndSetHead(h)) {
-                    tail = node;
-                    return h;
+        for (;;) {      //这里用到了自旋
+            Node t = tail;  //t指向当前的tail
+            if (t == null) { // Must initialize --> 如果当前tail还是空,就需要初始化了
+                Node h = new Node(); // Dummy header    --> 创建一个空的节点,作为虚拟的header, 为什么是一个Dummy?
+                h.next = node;      //h后缀指向node
+                node.prev = h;      //node前缀指向h,这时这个队列就只有h和node两个节点了
+                if (compareAndSetHead(h)) {     //CAS设置队列的头,失败则会继续重试; 下一次进来,如果t!=null,则进入到下面的else;
+                    tail = node;                //如果CAS成功了,则将tail指向当前node
+                    return h;                   //返回h,就是返回空的头节点
                 }
             }
             else {
-                node.prev = t;     
-                if (compareAndSetTail(t, node)) {
-                    t.next = node; 
-                    return t; 
-                }
+                node.prev = t;     //如果t!=null,也就是末尾节点指向某个节点了则将node的前缀指向t
+                if (compareAndSetTail(t, node)) {   //CAS设置末尾节点tail指向当前节点,这里失败会一直重试,直到成功为止;
+                    t.next = node;                  //成功后,末尾节点的后缀指向当前节点,所以当前节点就成为末尾节点了.
+                    return t;                       //这里的想法是如果多线程出现竞争导致CAS失败,就继续重试,最终保证node会插入到队列中.
+                }                                   //可能失败了多次,最后插入进去成为末尾节点;也可能一次就成功了,但是又被其他重试的线程替换了
             }
         }
     }
@@ -543,18 +543,21 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
      * @return the new node
      */
     private Node addWaiter(Node mode) {
-        Node node = new Node(Thread.currentThread(), mode);
+        Node node = new Node(Thread.currentThread(), mode);     //创建一个Node
         // Try the fast path of enq; backup to full enq on failure
-        Node pred = tail;
-        if (pred != null) {
-            node.prev = pred;     
-            if (compareAndSetTail(pred, node)) {
-                pred.next = node; 
-                return node;
+        Node pred = tail;   //pred指向当前的tail
+        if (pred != null) { //判断等待队列中有节点,也就是pred不为空
+            node.prev = pred;      //新创建的节点,前缀指向pred; 也就是新创建的node,在当前末尾节点之后
+            if (compareAndSetTail(pred, node)) {    //CAS, 设置末尾节点tail 指向新创建的node, (整个Node链表是通过各自前后缀相连的;tail只需要一直指向末尾节点就行了)
+                                                    // 这个unsafe的CAS操作可能失败吗? 需要重试吗??? 毕竟CAS都是伴随着自旋重试的
+                                                    // 不需要重试:如果CAS成功了,就继续下面的流程; 如果CAS失败了,就放弃本次CAS,后果就是tail会被另外一个线程指向他指向的另外一个节点
+                                                    // 放弃本次CAS后, 会继续执行下面的enq(node), 继续往下看
+                pred.next = node;       //设置末尾节点的后缀,是当前节点; 现在node就已经放置到末尾了
+                return node;            //返回新的末尾节点node;
             }
         }
-        enq(node);
-        return node;
+        enq(node);      //走到这里的话,如果是因为pred != null过来的,则会初始化等待队列; 如果是因为CAS失败的,会做什么操作呢?
+        return node;    //返回刚放进去的新创建的节点
     }
 
     /**
@@ -825,10 +828,10 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
      * Acquire in shared uninterruptible mode
      * @param arg the acquire argument
      */
-    private void doAcquireShared(int arg) {
-        final Node node = addWaiter(Node.SHARED);
+    private void doAcquireShared(int arg) {     //获取共享锁
+        final Node node = addWaiter(Node.SHARED);   //增加等待的共享队列, 模式是共享mode : Node.SHARED ,会创建一个节点,添加到当前共享锁的等待队列里面(等待队列就是维护的一个链表)
         try {
-            boolean interrupted = false;
+            boolean interrupted = false;        //doAcquireShared这个方法执行的时候,不响应中断
             for (;;) {
                 final Node p = node.predecessor();
                 if (p == head) {
@@ -837,7 +840,7 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         if (interrupted)
-                            selfInterrupt();
+                            selfInterrupt();    //响应中断??
                         return;
                     }
                 }
@@ -1155,7 +1158,7 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
      * you like.
      */
     public final void acquireShared(int arg) {
-        if (tryAcquireShared(arg) < 0)
+        if (tryAcquireShared(arg) < 0)  //小于0表示没有许可,需要阻塞
             doAcquireShared(arg);
     }
 
@@ -1211,7 +1214,7 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
      * you like.
      * @return the value returned from {@link #tryReleaseShared} 
      */
-    public final boolean releaseShared(int arg) {
+    public final boolean releaseShared(int arg) {   //释放共享锁,arg只在semaphore里面有用
         if (tryReleaseShared(arg)) {
             Node h = head;
             if (h != null && h.waitStatus != 0) 
