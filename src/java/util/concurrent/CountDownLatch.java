@@ -125,7 +125,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 public class CountDownLatch {
     /**
      * Synchronization control For CountDownLatch.
-     * Uses AQS state to represent count.
+     * Uses AQS state to represent count.           //state 表示 计数器
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
         Sync(int count) {
@@ -133,21 +133,21 @@ public class CountDownLatch {
         }
         
         int getCount() {
-            return getState();  //获取计数器,都是读取的volatile,可以保证内存可见性,但是线程安全性怎么保证的?
+            return getState();  //获取计数器,都是读取的volatile,可以保证内存可见性,但是线程安全性怎么保证的 --> 所有的更新动作都是CAS,保证原子性
         }
 
         public int tryAcquireShared(int acquires) {
-            return getState() == 0? 1 : -1;     //获取共享锁,如果计数器为0,返回1;否则返回-1 (AQS的acquireShared会调用->doAcquireShared,会阻塞?)
+            return getState() == 0? 1 : -1;     //获取共享锁,如果计数器为0,返回1;否则返回-1 (AQS的acquireShared会调用->doAcquireShared,没有许可的时候会阻塞)
         }
         
         public boolean tryReleaseShared(int releases) {
-            // Decrement count; signal when transition to zero
+            // Decrement count; signal when transition to zero  --> 递减计数器,当值为0时通知阻塞的线程
             for (;;) {
                 int c = getState();
-                if (c == 0)
+                if (c == 0)     //如果已经为0了,返回false表示release失败
                     return false;
                 int nextc = c-1;
-                if (compareAndSetState(c, nextc)) 
+                if (compareAndSetState(c, nextc))   //CAS修改值减一,如果失败了会继续重试
                     return nextc == 0;
             }
         }
@@ -173,10 +173,10 @@ public class CountDownLatch {
      * zero, unless the thread is {@link Thread#interrupt interrupted}.
      *
      * <p>If the current {@link #getCount count} is zero then this method
-     * returns immediately.
+     * returns immediately.                                                     //立即返回
      * <p>If the current {@link #getCount count} is greater than zero then
      * the current thread becomes disabled for thread scheduling 
-     * purposes and lies dormant until one of two things happen:
+     * purposes and lies dormant until one of two things happen:                //两种情况方法会解除阻塞:1.计数器到零 2.线程被中断
      * <ul>
      * <li>The count reaches zero due to invocations of the
      * {@link #countDown} method; or
@@ -195,7 +195,7 @@ public class CountDownLatch {
      * while waiting.
      */
     public void await() throws InterruptedException {
-        sync.acquireSharedInterruptibly(1);
+        sync.acquireSharedInterruptibly(1); //获取共享锁; @see tryAcquireShared() 返回true时,此方法才会解除阻塞
     }
 
     /**
@@ -241,7 +241,7 @@ public class CountDownLatch {
      */
     public boolean await(long timeout, TimeUnit unit) 
         throws InterruptedException {
-        return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
+        return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));    //利用LockSupport.parkNanos(xxx)最多等待一定的时间
     }
 
     /**
@@ -255,11 +255,11 @@ public class CountDownLatch {
      */
     public void countDown() {
         sync.releaseShared(1);
-    }
+    }   //减少计数器
 
     /**
      * Returns the current count.
-     * <p>This method is typically used for debugging and testing purposes.
+     * <p>This method is typically used for debugging and testing purposes.     //方法主要用于debug
      * @return the current count.
      */
     public long getCount() {

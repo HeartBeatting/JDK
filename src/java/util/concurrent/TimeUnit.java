@@ -48,7 +48,7 @@ public enum TimeUnit {
     }
 
     /** Lookup table for conversion factors */
-    private static final int[] multipliers = { 
+    private static final int[] multipliers = {  //这种把倍数等固定的值保存到数组里的,比较好管理
         1, 
         1000, 
         1000 * 1000, 
@@ -60,7 +60,7 @@ public enum TimeUnit {
      * dividing these down, we don't have to deal with asymmetry of
      * MIN/MAX values.
      */
-    private static final long[] overflows = { 
+    private static final long[] overflows = {
         0, // unused
         Long.MAX_VALUE / 1000,
         Long.MAX_VALUE / (1000 * 1000),
@@ -70,20 +70,20 @@ public enum TimeUnit {
     /**
      * Perform conversion based on given delta representing the
      * difference between units
-     * @param delta the difference in index values of source and target units
-     * @param duration the duration
-     * @return converted duration or saturated value
+     * @param delta the difference in index values of source and target units   (index values之差, index [0,1,2,3]) = unit.index - index
+     * @param duration the duration                                             (持续时间)
+     * @return converted duration or saturated value    (转化后的值)
      */
     private static long doConvert(int delta, long duration) {
-        if (delta == 0)
+        if (delta == 0)         //单位相同直接返回
             return duration;
-        if (delta < 0) 
-            return duration / multipliers[-delta];
+        if (delta < 0)          //秒转化为毫秒 就是 unit.index - index < 0
+            return duration / multipliers[-delta];      //返回持续时间除单位
         if (duration > overflows[delta])
-            return Long.MAX_VALUE;
+            return Long.MAX_VALUE;      //超过上限就直接返回Long.MAX_VALUE
         if (duration < -overflows[delta])
-            return Long.MIN_VALUE;
-        return duration * multipliers[delta];
+            return Long.MIN_VALUE;      //超过下限就直接返回Long.MIN_VALUE
+        return duration * multipliers[delta];   //返回持续时间 X 倍数
     }
 
     /**
@@ -103,7 +103,7 @@ public enum TimeUnit {
      * overflow, or <tt>Long.MAX_VALUE</tt> if it would positively overflow.
      */
     public long convert(long duration, TimeUnit unit) {
-        return doConvert(unit.index - index, duration);
+        return doConvert(unit.index - index, duration);     //doConvert(目标单位.index - 当前单位index, duration)
     }
 
     /**
@@ -221,7 +221,7 @@ public enum TimeUnit {
      * @throws InterruptedException if interrupted while sleeping.
      * @see Thread#sleep
      */
-    public void sleep(long timeout) throws InterruptedException {
+    public void sleep(long timeout) throws InterruptedException {   //相当于Thread.sleep()
         if (timeout > 0) {
             long ms = toMillis(timeout);
             int ns = excessNanos(timeout, ms);

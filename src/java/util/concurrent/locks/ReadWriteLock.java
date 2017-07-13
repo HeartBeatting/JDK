@@ -14,7 +14,7 @@ package java.util.concurrent.locks;
  * multiple reader threads, so long as there are no writers.  The
  * {@link #writeLock write lock} is exclusive.
  * 
- * <p>A read-write lock allows for a greater level of concurrency in
+ * <p>A read-write lock allows for a greater level of concurrency in            //读共享锁并发性更高
  * accessing shared data than that permitted by a mutual exclusion lock.
  * It exploits the fact that while only a single thread at a time (a
  * <em>writer</em> thread) can modify the shared data, in many cases any 
@@ -27,11 +27,11 @@ package java.util.concurrent.locks;
  * the shared data are suitable.
  *
  * <p>Whether or not a read-write lock will improve performance over the use
- * of a mutual exclusion lock depends on the frequency that the data is
- * read compared to being modified, the duration of the read and write 
+ * of a mutual exclusion lock depends on the frequency that the data is         //读写锁能否提高性能,取决了读操作相对于些操作的比例
+ * read compared to being modified, the duration of the read and write          //以及读和些持续的时间
  * operations, and the contention for the data - that is, the number of
  * threads that will try to read or write the data at the same time.
- * For example, a collection that is initially populated with data and
+ * For example, a collection that is initially populated with data and          //应用场景:collection数据,初始化好了,没有频繁修改,但是会被频繁读取
  * thereafter infrequently modified, while being frequently searched
  * (such as a directory of some kind) is an ideal candidate for the use of
  * a read-write lock. However, if updates become frequent then the data
@@ -52,7 +52,7 @@ package java.util.concurrent.locks;
  * <ul>
  * <li>Determining whether to grant the read lock or the write lock, when
  * both readers and writers are waiting, at the time that a writer releases
- * the write lock. Writer preference is common, as writes are expected to be
+ * the write lock. Writer preference is common, as writes are expected to be    //更偏向于执行写操作,因为写比较快并且不频繁
  * short and infrequent. Reader preference is less common as it can lead to
  * lengthy delays for a write if the readers are frequent and long-lived as
  * expected. Fair, or &quot;in-order&quot; implementations are also possible.
@@ -66,7 +66,7 @@ package java.util.concurrent.locks;
  * write lock reacquire it? Can it acquire a read lock while holding the
  * write lock? Is the read lock itself reentrant?
  *
- * <li>Can the write lock be downgraded to a read lock without allowing
+ * <li>Can the write lock be downgraded to a read lock without allowing         //降级
  * an intervening writer? Can a read lock be upgraded to a write lock,
  * in preference to other waiting readers or writers?
  *

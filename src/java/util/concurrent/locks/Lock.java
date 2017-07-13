@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * <tt>Lock</tt> implementations provide more extensive locking
  * operations than can be obtained using <tt>synchronized</tt> methods
- * and statements.  They allow more flexible structuring, may have
- * quite different properties, and may support multiple associated
+ * and statements.  They allow more flexible structuring, may have      (比内置锁更灵活更多操作)
+ * quite different properties, and may support multiple associated      (支持多条件对象 Condition)
  * {@link Condition} objects.
  *
  * <p>A lock is a tool for controlling access to a shared resource by
@@ -21,9 +21,9 @@ import java.util.concurrent.TimeUnit;
  * all access to the shared resource requires that the lock be
  * acquired first. However, some locks may allow concurrent access to
  * a shared resource, such as the read lock of a {@link
- * ReadWriteLock}.
+ * ReadWriteLock}.  (正常的是排他锁,ReadWriteLock 是共享锁)
  *
- * <p>The use of <tt>synchronized</tt> methods or statements provides 
+ * <p>The use of <tt>synchronized</tt> methods or statements provides   (synchronized可以获取对象的隐式监视器锁)
  * access to the implicit monitor lock associated with every object, but
  * forces all lock acquisition and release to occur in a block-structured way:
  * when multiple locks are acquired they must be released in the opposite
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * and statements makes it much easier to program with monitor locks,
  * and helps avoid many common programming errors involving locks,
  * there are occasions where you need to work with locks in a more
- * flexible way. For example, some algorithms for traversing
+ * flexible way. For example, some algorithms for traversing            (显示锁Lock应用场景)
  * concurrently accessed data structures require the use of
  * &quot;hand-over-hand&quot; or &quot;chain locking&quot;: you
  * acquire the lock of node A, then node B, then release A and acquire
@@ -73,14 +73,14 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>A <tt>Lock</tt> class can also provide behavior and semantics
  * that is quite different from that of the implicit monitor lock,
- * such as guaranteed ordering, non-reentrant usage, or deadlock
+ * such as guaranteed ordering, non-reentrant usage, or deadlock        //相比隐式锁,可以实现公平,非重入,死锁检测等功能
  * detection. If an implementation provides such specialized semantics
- * then the implementation must document those semantics.
+ * then the implementation must document those semantics.               //实现类里需要说明这些语义
  *
- * <p>Note that <tt>Lock</tt> instances are just normal objects and can 
+ * <p>Note that <tt>Lock</tt> instances are just normal objects and can     //Lock实例本身就是普通的对象,可以被用作synchronized
  * themselves be used as the target in a <tt>synchronized</tt> statement.
  * Acquiring the
- * monitor lock of a <tt>Lock</tt> instance has no specified relationship
+ * monitor lock of a <tt>Lock</tt> instance has no specified relationship   //获取Lock的对象监视器锁和调用Lock的方法没有关系,不建议这么使用
  * with invoking any of the {@link #lock} methods of that instance. 
  * It is recommended that to avoid confusion you never use <tt>Lock</tt>
  * instances in this way, except within their own implementation.
@@ -120,8 +120,8 @@ import java.util.concurrent.TimeUnit;
  * acquisition is supported: which is either totally, or only on
  * method entry.
  *
- * <p>As interruption generally implies cancellation, and checks for 
- * interruption are often infrequent, an implementation can favor responding
+ * <p>As interruption generally implies cancellation, and checks for            //中断一般就是意味着取消线程
+ * interruption are often infrequent, an implementation can favor responding    //一个实现可以支持在方法正常返回以后再相应中断
  * to an interrupt over normal method return. This is true even if it can be
  * shown that the interrupt occurred after another action may have unblocked
  * the thread. An implementation should document this behavior. 
@@ -144,7 +144,7 @@ public interface Lock {
      * purposes and lies dormant until the lock has been acquired.
      * <p><b>Implementation Considerations</b>
      * <p>A <tt>Lock</tt> implementation may be able to detect 
-     * erroneous use of the lock, such as an invocation that would cause 
+     * erroneous use of the lock, such as an invocation that would cause    //怎么检测死锁??
      * deadlock, and may throw an (unchecked) exception in such circumstances. 
      * The circumstances and the exception type must be documented by that 
      * <tt>Lock</tt> implementation.

@@ -6,9 +6,8 @@
  */
 
 package java.util.concurrent.locks;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import java.util.*;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An implementation of {@link ReadWriteLock} supporting similar
@@ -23,43 +22,43 @@ import java.util.*;
  * <em>fairness</em> policy.  When constructed as fair, threads
  * contend for entry using an approximately arrival-order policy. When
  * the write lock is released either the longest-waiting single writer
- * will be assigned the write lock, or if there is a reader waiting
+ * will be assigned the write lock, or if there is a reader waiting         //公平锁,读和写谁等待时间最长,谁先执行
  * longer than any writer, the set of readers will be assigned the
  * read lock.  When constructed as non-fair, the order of entry to the
- * lock need not be in arrival order.  In either case, if readers are
+ * lock need not be in arrival order.  In either case, if readers are       //写获取锁,随后的读都不能获取锁,直到写操作释放锁
  * active and a writer enters the lock then no subsequent readers will
  * be granted the read lock until after that writer has acquired and
  * released the write lock.
- * 
+ *
  * <li><b>Reentrancy</b>
  * <p>This lock allows both readers and writers to reacquire read or
- * write locks in the style of a {@link ReentrantLock}. Readers are not
- * allowed until all write locks held by the writing thread have been
- * released.  
- * <p>Additionally, a writer can acquire the read lock - but not vice-versa.
+ * write locks in the style of a {@link ReentrantLock}. Readers are not     //读和写操作都是可重入的
+ * allowed until all write locks held by the writing thread have been       //读操作必须等到所有的写线程锁都释放
+ * released.
+ * <p>Additionally, a writer can acquire the read lock - but not vice-versa.    //写操作可以获取读锁
  * Among other applications, reentrancy can be useful when
- * write locks are held during calls or callbacks to methods that
- * perform reads under read locks. 
- * If a reader tries to acquire the write lock it will never succeed.
- * 
+ * write locks are held during calls or callbacks to methods that               //写操作里可以调用获取读锁的操作
+ * perform reads under read locks.
+ * If a reader tries to acquire the write lock it will never succeed.           //读操作用于不能获取写锁
+ *
  * <li><b>Lock downgrading</b>
- * <p>Reentrancy also allows downgrading from the write lock to a read lock,
+ * <p>Reentrancy also allows downgrading from the write lock to a read lock,    //可重入允许写锁降级
  * by acquiring the write lock, then the read lock and then releasing the
- * write lock. However, upgrading from a read lock to the write lock is
+ * write lock. However, upgrading from a read lock to the write lock is         //不允许写锁升级成读锁
  * <b>not</b> possible.
  *
  * <li><b>Interruption of lock acquisition</b>
- * <p>The read lock and write lock both support interruption during lock
+ * <p>The read lock and write lock both support interruption during lock        //读写锁都能响应中断
  * acquisition.
  *
  * <li><b>{@link Condition} support</b>
  * <p>The write lock provides a {@link Condition} implementation that
- * behaves in the same way, with respect to the write lock, as the 
+ * behaves in the same way, with respect to the write lock, as the
  * {@link Condition} implementation provided by
  * {@link ReentrantLock#newCondition} does for {@link ReentrantLock}.
- * This {@link Condition} can, of course, only be used with the write lock.
+ * This {@link Condition} can, of course, only be used with the write lock.     //只有写锁支持newCondition
  * <p>The read lock does not support a {@link Condition} and
- * <tt>readLock().newCondition()</tt> throws 
+ * <tt>readLock().newCondition()</tt> throws
  * <tt>UnsupportedOperationException</tt>.
  *
  * <li><b>Instrumentation</b>
@@ -69,11 +68,11 @@ import java.util.*;
  * </ul>
  *
  * <p> Serialization of this class behaves in the same way as built-in
- * locks: a deserialized lock is in the unlocked state, regardless of
+ * locks: a deserialized lock is in the unlocked state, regardless of           //反序列化的锁不是在锁状态, 序列化的时候忽略他的状态
  * its state when serialized.
  *
  * <p><b>Sample usages</b>. Here is a code sketch showing how to exploit
- * reentrancy to perform lock downgrading after updating a cache (exception
+ * reentrancy to perform lock downgrading after updating a cache (exception     //实现锁降级
  * handling is elided for simplicity):
  * <pre>
  * class CachedData {
@@ -107,7 +106,7 @@ import java.util.*;
  * only when the collections are expected to be large, accessed by
  * more reader threads than writer threads, and entail operations with
  * overhead that outweighs synchronization overhead. For example, here
- * is a class using a TreeMap that is expected to be large and 
+ * is a class using a TreeMap that is expected to be large and
  * concurrently accessed.
  *
  * <pre>
@@ -131,18 +130,18 @@ import java.util.*;
  *    }
  * }
  * </pre>
- * 
+ *
  *
  * <h3>Implementation Notes</h3>
  *
- * <p>A reentrant write lock intrinsically defines an owner and can
- * only be released by the thread that acquired it.  In contrast, in
+ * <p>A reentrant write lock intrinsically defines an owner and can         //写锁本质上是声明一个线程作为锁的拥有者
+ * only be released by the thread that acquired it.  In contrast, in        //读锁没有必要有拥有者,因为读操作对象没有改变
  * this implementation, the read lock has no concept of ownership, and
  * there is no requirement that the thread releasing a read lock is
  * the same as the one that acquired it.  However, this property is
  * not guaranteed to hold in future implementations of this class.
  *
- * <p> This lock supports a maximum of 65536 recursive write locks
+ * <p> This lock supports a maximum of 65536 recursive write locks          //最多65536次重入写锁 和 65536个读锁
  * and 65536 read locks. Attempts to exceed these limits result in
  * {@link Error} throws from locking methods.
  *
@@ -163,7 +162,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * Creates a new <tt>ReentrantReadWriteLock</tt> with
      * default ordering properties.
      */
-    public ReentrantReadWriteLock() {
+    public ReentrantReadWriteLock() {   //默认是非公平锁,写操作优先获取锁?
         sync = new NonfairSync();
         readerLock = new ReadLock(this);
         writerLock = new WriteLock(this);
@@ -175,7 +174,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      *
      * @param fair true if this lock should use a fair ordering policy
      */
-    public ReentrantReadWriteLock(boolean fair) {
+    public ReentrantReadWriteLock(boolean fair) {   //指定公平或者非公平
         sync = (fair)? new FairSync() : new NonfairSync();
         readerLock = new ReadLock(this);
         writerLock = new WriteLock(this);
@@ -190,31 +189,31 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * one representing the exclusive (writer) lock hold count,
      * and the upper the shared (reader) hold count.
      */
-    
+
     static final int SHARED_SHIFT   = 16;
-    static final int SHARED_UNIT    = (1 << SHARED_SHIFT);
-    static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
-    
+    static final int SHARED_UNIT    = (1 << SHARED_SHIFT);      // = 65536
+    static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;  // = 65535
+
     /** Returns the number of shared holds represented in count  */
     static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
     /** Returns the number of exclusive holds represented in count  */
-    static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }
+    static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }     //与或操作 范围为 0-65535, 在c<65535 时就等于c
 
-    /** 
+    /**
      * Synchronization implementation for ReentrantReadWriteLock.
      * Subclassed into fair and nonfair versions.
      */
     abstract static class Sync extends AbstractQueuedSynchronizer {
         /** Current (exclusive) owner thread */
-        transient Thread owner;
+        transient Thread owner;     //只有写锁(独占锁)才有owner
 
         /**
          * Perform write lock. Allows fast path in non-fair version.
          */
         abstract void wlock();
 
-        /** 
-         * Perform non-fair tryLock for write.  tryAcquire is
+        /**
+         * Perform non-fair tryLock for write.  tryAcquire is           //用于非公平的写锁(排他锁)
          * implemented in subclasses, but both versions need nonfair
          * try for trylock method
          */
@@ -228,14 +227,14 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
                 throw new Error("Maximum lock count exceeded");
             if (c != 0 && (w == 0 || current != owner))
                 return false;
-            if (!compareAndSetState(c, c + acquires)) 
+            if (!compareAndSetState(c, c + acquires))
                 return false;
             owner = current;
             return true;
         }
 
-        /** 
-         * Perform nonfair tryLock for read. 
+        /**
+         * Perform nonfair tryLock for read.    //用于非公平的读锁(共享锁)
          */
         final int nonfairTryAcquireShared(int acquires) {
             for (;;) {
@@ -243,16 +242,17 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
                 int nextc = c + (acquires << SHARED_SHIFT);
                 if (nextc < c)
                     throw new Error("Maximum lock count exceeded");
-                if (exclusiveCount(c) != 0 && 
+                if (exclusiveCount(c) != 0 &&
                     owner != Thread.currentThread())
                     return -1;
-                if (compareAndSetState(c, nextc)) 
+                if (compareAndSetState(c, nextc))
                     return 1;
                 // Recheck count if lost CAS
             }
         }
 
-        protected final boolean tryRelease(int releases) {
+        @Override
+        protected final boolean tryRelease(int releases) {      //释放锁
             Thread current = Thread.currentThread();
             int c = getState();
             if (owner != current)
@@ -267,26 +267,28 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
             return free;
         }
 
-        protected final boolean tryReleaseShared(int releases) {
+        @Override
+        protected final boolean tryReleaseShared(int releases) {    //释放共享锁
             for (;;) {
                 int c = getState();
                 int nextc = c - (releases << SHARED_SHIFT);
                 if (nextc < 0)
                     throw new IllegalMonitorStateException();
-                if (compareAndSetState(c, nextc)) 
+                if (compareAndSetState(c, nextc))
                     return nextc == 0;
             }
         }
-    
+
+        @Override
         protected final boolean isHeldExclusively() {
-            return exclusiveCount(getState()) != 0 && 
+            return exclusiveCount(getState()) != 0 &&
                 owner == Thread.currentThread();
         }
 
         // Methods relayed to outer class
-        
-        final ConditionObject newCondition() { 
-            return new ConditionObject(); 
+
+        final ConditionObject newCondition() {
+            return new ConditionObject();
         }
 
         final Thread getOwner() {
@@ -294,11 +296,11 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
             Thread o = owner;
             return (c == 0)? null : o;
         }
-        
+
         final int getReadLockCount() {
             return sharedCount(getState());
         }
-        
+
         final boolean isWriteLocked() {
             return exclusiveCount(getState()) != 0;
         }
@@ -322,11 +324,11 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         final int getCount() { return getState(); }
     }
 
-    /** 
+    /**
      * Nonfair version of Sync
      */
     final static class NonfairSync extends Sync {
-        protected final boolean tryAcquire(int acquires) { 
+        protected final boolean tryAcquire(int acquires) {
             return nonfairTryAcquire(acquires);
         }
 
@@ -343,11 +345,11 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         }
     }
 
-    /** 
+    /**
      * Fair version of Sync
      */
     final static class FairSync extends Sync {
-        protected final boolean tryAcquire(int acquires) { 
+        protected final boolean tryAcquire(int acquires) {
             // mask out readlocks if called from condition methods
             acquires = exclusiveCount(acquires);
             Thread current = Thread.currentThread();
@@ -357,11 +359,11 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
             if (w + acquires >= SHARED_UNIT)
                 throw new Error("Maximum lock count exceeded");
             if ((w == 0 || current != owner) &&
-                (c != 0 || 
-                 ((first = getFirstQueuedThread()) != null && 
+                (c != 0 ||
+                 ((first = getFirstQueuedThread()) != null &&
                   first != current)))
                 return false;
-            if (!compareAndSetState(c, c + acquires)) 
+            if (!compareAndSetState(c, c + acquires))
                 return false;
             owner = current;
             return true;
@@ -400,8 +402,8 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         private static final long serialVersionUID = -5992448646407690164L;
         private final Sync sync;
 
-        /** 
-         * Constructor for use by subclasses 
+        /**
+         * Constructor for use by subclasses
          * @param lock the outer lock object
          * @throws NullPointerException if lock null
          */
@@ -410,7 +412,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         }
 
         /**
-         * Acquires the read lock. 
+         * Acquires the read lock.
          *
          * <p>Acquires the read lock if the write lock is not held by
          * another thread and returns immediately.
@@ -419,19 +421,19 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * the current thread becomes disabled for thread scheduling
          * purposes and lies dormant until the read lock has been acquired.
          */
-        public void lock() { 
+        public void lock() {
             sync.acquireShared(1);
         }
 
         /**
-         * Acquires the read lock unless the current thread is 
+         * Acquires the read lock unless the current thread is
          * {@link Thread#interrupt interrupted}.
          *
          * <p>Acquires the read lock if the write lock is not held
          * by another thread and returns immediately.
          *
          * <p>If the write lock is held by another thread then the
-         * current thread becomes disabled for thread scheduling 
+         * current thread becomes disabled for thread scheduling
          * purposes and lies dormant until one of two things happens:
          *
          * <ul>
@@ -447,9 +449,9 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          *
          * <ul>
          *
-         * <li>has its interrupted status set on entry to this method; or 
+         * <li>has its interrupted status set on entry to this method; or
          *
-         * <li>is {@link Thread#interrupt interrupted} while acquiring 
+         * <li>is {@link Thread#interrupt interrupted} while acquiring
          * the read lock,
          *
          * </ul>
@@ -515,7 +517,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * </pre>
          *
          * <p>If the write lock is held by another thread then the
-         * current thread becomes disabled for thread scheduling 
+         * current thread becomes disabled for thread scheduling
          * purposes and lies dormant until one of three things happens:
          *
          * <ul>
@@ -536,7 +538,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          *
          * <ul>
          *
-         * <li>has its interrupted status set on entry to this method; or 
+         * <li>has its interrupted status set on entry to this method; or
          *
          * <li>is {@link Thread#interrupt interrupted} while acquiring
          * the read lock,
@@ -567,7 +569,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         }
 
         /**
-         * Attempts to release this lock.  
+         * Attempts to release this lock.
          *
          * <p> If the number of readers is now zero then the lock
          * is made available for write lock attempts.
@@ -578,7 +580,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 
         /**
          * Throws <tt>UnsupportedOperationException</tt> because
-	 * <tt>ReadLocks</tt> do not support conditions.
+	     * <tt>ReadLocks</tt> do not support conditions.
          * @throws UnsupportedOperationException always
          */
         public Condition newCondition() {
@@ -587,14 +589,14 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 
         /**
          * Returns a string identifying this lock, as well as its lock state.
-         * The state, in brackets, includes the String 
+         * The state, in brackets, includes the String
          * &quot;Read locks =&quot; followed by the number of held
          * read locks.
          * @return a string identifying this lock, as well as its lock state.
          */
         public String toString() {
             int r = sync.getReadLockCount();
-            return super.toString() + 
+            return super.toString() +
                 "[Read locks = " + r + "]";
         }
 
@@ -607,8 +609,8 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         private static final long serialVersionUID = -4992448646407690164L;
 	private final Sync sync;
 
-        /** 
-         * Constructor for use by subclasses 
+        /**
+         * Constructor for use by subclasses
          * @param lock the outer lock object
          * @throws NullPointerException if lock null
          */
@@ -617,10 +619,10 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         }
 
         /**
-         * Acquire the write lock. 
+         * Acquire the write lock.
          *
          * <p>Acquires the write lock if neither the read nor write lock
-	 * are held by another thread
+	     * are held by another thread
          * and returns immediately, setting the write lock hold count to
          * one.
          *
@@ -642,7 +644,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * Thread#interrupt interrupted}.
          *
          * <p>Acquires the write lock if neither the read nor write lock
-	 * are held by another thread
+	     * are held by another thread
          * and returns immediately, setting the write lock hold count to
          * one.
          *
@@ -697,7 +699,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * at the time of invocation.
          *
          * <p>Acquires the write lock if neither the read nor write lock
-	 * are held by another thread
+	     * are held by another thread
          * and returns immediately with the value <tt>true</tt>,
          * setting the write lock hold count to one. Even when this lock has
          * been set to use a fair ordering policy, a call to
@@ -731,7 +733,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * not been {@link Thread#interrupt interrupted}.
          *
          * <p>Acquires the write lock if neither the read nor write lock
-	 * are held by another thread
+	     * are held by another thread
          * and returns immediately with the value <tt>true</tt>,
          * setting the write lock hold count to one. If this lock has been
          * set to use a fair ordering policy then an available lock
@@ -776,7 +778,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * <li>is {@link Thread#interrupt interrupted} while acquiring
          * the write lock,
          *
-         * </ul> 
+         * </ul>
          *
          * then {@link InterruptedException} is thrown and the current
          * thread's interrupted status is cleared.
@@ -805,9 +807,9 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         public boolean tryLock(long timeout, TimeUnit unit) throws InterruptedException {
             return sync.tryAcquireNanos(1, unit.toNanos(timeout));
         }
-        
+
         /**
-         * Attempts to release this lock.  
+         * Attempts to release this lock.
          *
          * <p>If the current thread is the holder of this lock then
          * the hold count is decremented. If the hold count is now
@@ -823,7 +825,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 
         /**
          * Returns a {@link Condition} instance for use with this
-         * {@link Lock} instance. 
+         * {@link Lock} instance.
          * <p>The returned {@link Condition} instance supports the same
          * usages as do the {@link Object} monitor methods ({@link
          * Object#wait() wait}, {@link Object#notify notify}, and {@link
@@ -859,11 +861,11 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * acquiring the lock, which is in the default case not specified,
          * but for <em>fair</em> locks favors those threads that have been
          * waiting the longest.
-         * 
+         *
          * </ul>
          * @return the Condition object
          */
-        public Condition newCondition() { 
+        public Condition newCondition() {
             return sync.newCondition();
         }
 
@@ -906,7 +908,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
     protected Thread getOwner() {
         return sync.getOwner();
     }
-    
+
     /**
      * Queries the number of read locks held for this lock. This
      * method is designed for use in monitoring system state, not for
@@ -921,7 +923,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * Queries if the write lock is held by any thread. This method is
      * designed for use in monitoring system state, not for
      * synchronization control.
-     * @return <tt>true</tt> if any thread holds the write lock and 
+     * @return <tt>true</tt> if any thread holds the write lock and
      * <tt>false</tt> otherwise.
      */
     public boolean isWriteLocked() {
@@ -929,8 +931,8 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
     }
 
     /**
-     * Queries if the write lock is held by the current thread. 
-     * @return <tt>true</tt> if the current thread holds the write lock and 
+     * Queries if the write lock is held by the current thread.
+     * @return <tt>true</tt> if the current thread holds the write lock and
      * <tt>false</tt> otherwise.
      */
     public boolean isWriteLockedByCurrentThread() {
@@ -987,7 +989,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * @return true if there may be other threads waiting to acquire
      * the lock.
      */
-    public final boolean hasQueuedThreads() { 
+    public final boolean hasQueuedThreads() {
         return sync.hasQueuedThreads();
     }
 
@@ -1002,7 +1004,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * @return true if the given thread is queued waiting for this lock.
      * @throws NullPointerException if thread is null
      */
-    public final boolean hasQueuedThread(Thread thread) { 
+    public final boolean hasQueuedThread(Thread thread) {
         return sync.isQueued(thread);
     }
 
@@ -1042,12 +1044,12 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * monitoring of the system state.
      * @param condition the condition
      * @return <tt>true</tt> if there are any waiting threads.
-     * @throws IllegalMonitorStateException if this lock 
+     * @throws IllegalMonitorStateException if this lock
      * is not held
      * @throws IllegalArgumentException if the given condition is
      * not associated with this lock
      * @throws NullPointerException if condition null
-     */ 
+     */
     public boolean hasWaiters(Condition condition) {
         if (condition == null)
             throw new NullPointerException();
@@ -1065,12 +1067,12 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * state, not for synchronization control.
      * @param condition the condition
      * @return the estimated number of waiting threads.
-     * @throws IllegalMonitorStateException if this lock 
+     * @throws IllegalMonitorStateException if this lock
      * is not held
      * @throws IllegalArgumentException if the given condition is
      * not associated with this lock
      * @throws NullPointerException if condition null
-     */ 
+     */
     public int getWaitQueueLength(Condition condition) {
         if (condition == null)
             throw new NullPointerException();
@@ -1090,7 +1092,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
      * extensive condition monitoring facilities.
      * @param condition the condition
      * @return the collection of threads
-     * @throws IllegalMonitorStateException if this lock 
+     * @throws IllegalMonitorStateException if this lock
      * is not held
      * @throws IllegalArgumentException if the given condition is
      * not associated with this lock
@@ -1116,8 +1118,8 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         int c = sync.getCount();
         int w = exclusiveCount(c);
         int r = sharedCount(c);
-        
-        return super.toString() + 
+
+        return super.toString() +
             "[Write locks = " + w + ", Read locks = " + r + "]";
     }
 

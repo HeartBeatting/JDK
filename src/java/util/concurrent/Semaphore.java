@@ -6,9 +6,9 @@
  */
 
 package java.util.concurrent;
-import java.util.*;
-import java.util.concurrent.locks.*;
-import java.util.concurrent.atomic.*;
+import java.util.Collection;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.util.concurrent.locks.Lock;
 
 /**
  * A counting semaphore.  Conceptually, a semaphore maintains a set of
@@ -130,11 +130,11 @@ public class Semaphore implements java.io.Serializable {
     private final Sync sync;
 
     /**
-     * Synchronization implementation for semaphore.  Uses AQS state
-     * to represent permits. Subclassed into fair and nonfair
-     * versions.
+     * Synchronization implementation for semaphore.  Uses AQS state    (state 表示 许可)
+     * to represent permits. Subclassed into fair and nonfair           (公平和非公平锁用AQS子类化实现,对于有竞争的场景,比如信号量,锁都需要判断是否实现公平策略)
+     * versions.                                                        (信号量仍然是采用共享mode的等待队列)
      */
-    abstract static class Sync extends AbstractQueuedSynchronizer {
+    abstract static class Sync extends AbstractQueuedSynchronizer {     //Sync也是一个抽象类
         Sync(int permits) {
             setState(permits);
         }
@@ -143,25 +143,28 @@ public class Semaphore implements java.io.Serializable {
             return getState();
         }
 
-        final int nonfairTryAcquireShared(int acquires) {
+        /**
+         * Concurrent里的公平意思,就是新进来的请求是否可以直接竞争许可(在等待队列中的线程还没获取到许可的间隙中),非公平的可以提升吞吐量
+         */
+        final int nonfairTryAcquireShared(int acquires) {   //非公平获取许可(用于AQS中判断是否获取许可成功的)
             for (;;) {
                 int available = getState();
-                int remaining = available - acquires;
+                int remaining = available - acquires;       //更新剩余许可数
                 if (remaining < 0 ||
-                    compareAndSetState(available, remaining))
-                    return remaining;
+                    compareAndSetState(available, remaining))   //如果remaining<0或者 CAS更新成功,返回结果;
+                    return remaining;                           //如果>0并且CAS更新失败,会继续重试,每次都是CAS,保证更新的原子性
             }
         }
         
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int p = getState();
-                if (compareAndSetState(p, p + releases)) 
+                if (compareAndSetState(p, p + releases))    //CAS释放许可
                     return true;
             }
         }
 
-        final void reducePermits(int reductions) {
+        final void reducePermits(int reductions) {  //减少许可
             for (;;) {
                 int current = getState();
                 int next = current - reductions;
@@ -170,7 +173,7 @@ public class Semaphore implements java.io.Serializable {
             }
         }
 
-        final int drainPermits() {
+        final int drainPermits() {  //清空许可
             for (;;) {
                 int current = getState();
                 if (current == 0 || compareAndSetState(current, 0))
@@ -188,7 +191,7 @@ public class Semaphore implements java.io.Serializable {
         }
        
         protected int tryAcquireShared(int acquires) {
-            return nonfairTryAcquireShared(acquires);
+            return nonfairTryAcquireShared(acquires);   //Sync默认的就是非公平实现
         }
     }
 
@@ -197,20 +200,20 @@ public class Semaphore implements java.io.Serializable {
      */
     final static class FairSync extends Sync {
         FairSync(int permits) {
-            super(permits);
+            super(permits); //初始化许可
         }
         
         protected int tryAcquireShared(int acquires) {
             Thread current = Thread.currentThread();
             for (;;) {
                 Thread first = getFirstQueuedThread();
-                if (first != null && first != current)
+                if (first != null && first != current)  //不允许直接竞争许可(如果队列不为空,或者当前线程不是等待的第一个线程,直接返回-1,表示获取失败,继续等待)
                     return -1;
                 int available = getState();
                 int remaining = available - acquires;
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))
-                    return remaining;
+                    return remaining;                   //没有许可或者更新成功,就返回结果
             }
         }
     }
@@ -223,7 +226,7 @@ public class Semaphore implements java.io.Serializable {
      * occur before any acquires will be granted.
      */
     public Semaphore(int permits) { 
-        sync = new NonfairSync(permits);
+        sync = new NonfairSync(permits);    //默认的Semaphore构造函数,构建的是一个非公平的信号量
     }
 
     /**
@@ -235,7 +238,7 @@ public class Semaphore implements java.io.Serializable {
      * @param fair true if this semaphore will guarantee first-in
      * first-out granting of permits under contention, else false.
      */
-    public Semaphore(int permits, boolean fair) { 
+    public Semaphore(int permits, boolean fair) {   //指定是公平或者非公平的
         sync = (fair)? new FairSync(permits) : new NonfairSync(permits);
     }
 
@@ -268,8 +271,8 @@ public class Semaphore implements java.io.Serializable {
      *
      * @see Thread#interrupt
      */
-    public void acquire() throws InterruptedException {
-        sync.acquireSharedInterruptibly(1);
+    public void acquire() throws InterruptedException { //acquire 这个方法会根据公平和非公平,判断是否插队
+        sync.acquireSharedInterruptibly(1);     //获取一个许可
     }
 
     /**
@@ -291,7 +294,7 @@ public class Semaphore implements java.io.Serializable {
      * thread does return from this method its interrupt status will be set.
      *
      */
-    public void acquireUninterruptibly() {
+    public void acquireUninterruptibly() {  //与上面方法的区别就是不响应中断
         sync.acquireShared(1);
     }
 
@@ -318,8 +321,8 @@ public class Semaphore implements java.io.Serializable {
      * @return <tt>true</tt> if a permit was acquired and <tt>false</tt>
      * otherwise.
      */
-    public boolean tryAcquire() {
-        return sync.nonfairTryAcquireShared(1) >= 0;
+    public boolean tryAcquire() {   //Semaphore自己定义的方法,直接调用Sync的非公平实现,尝试插队获取许可;
+        return sync.nonfairTryAcquireShared(1) >= 0;    //插队获取许可成功则返回true,失败返回false; 立马返回结果,不会像#acquire()会阻塞当前线程,不进入等待队列
     }
 
     /**
@@ -365,7 +368,7 @@ public class Semaphore implements java.io.Serializable {
      */
     public boolean tryAcquire(long timeout, TimeUnit unit) 
         throws InterruptedException {
-        return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
+        return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));    //尝试获取许可,有最长等待时间;不进入等待队列
     }
 
     /**
@@ -381,7 +384,7 @@ public class Semaphore implements java.io.Serializable {
      * in the application.
      */
     public void release() {
-        sync.releaseShared(1);
+        sync.releaseShared(1);  //释放一个许可
     }
        
     /**
@@ -423,7 +426,7 @@ public class Semaphore implements java.io.Serializable {
      *
      * @see Thread#interrupt
      */
-    public void acquire(int permits) throws InterruptedException {
+    public void acquire(int permits) throws InterruptedException {  //批量获取许可,线程会阻塞直到获取到全部许可为止.
         if (permits < 0) throw new IllegalArgumentException();
         sync.acquireSharedInterruptibly(permits);
     }
@@ -452,7 +455,7 @@ public class Semaphore implements java.io.Serializable {
      * @throws IllegalArgumentException if permits less than zero.
      *
      */
-    public void acquireUninterruptibly(int permits) {
+    public void acquireUninterruptibly(int permits) {   //不响应中断的批量获取许可
         if (permits < 0) throw new IllegalArgumentException();
         sync.acquireShared(permits);
     }
@@ -485,7 +488,7 @@ public class Semaphore implements java.io.Serializable {
      * otherwise.
      * @throws IllegalArgumentException if permits less than zero.
      */
-    public boolean tryAcquire(int permits) {
+    public boolean tryAcquire(int permits) {    //尝试插队批量获取许可,不进入等待队列,立马返回结果
         if (permits < 0) throw new IllegalArgumentException();
         return sync.nonfairTryAcquireShared(permits) >= 0;
     }
@@ -541,7 +544,7 @@ public class Semaphore implements java.io.Serializable {
      * @see Thread#interrupt
      *
      */
-    public boolean tryAcquire(int permits, long timeout, TimeUnit unit)
+    public boolean tryAcquire(int permits, long timeout, TimeUnit unit)     //有超时时间的批量获取许可
         throws InterruptedException {
         if (permits < 0) throw new IllegalArgumentException();
         return sync.tryAcquireSharedNanos(permits, unit.toNanos(timeout));
@@ -568,7 +571,7 @@ public class Semaphore implements java.io.Serializable {
      * @param permits the number of permits to release
      * @throws IllegalArgumentException if permits less than zero.
      */
-    public void release(int permits) {
+    public void release(int permits) {  //批量释放许可
         if (permits < 0) throw new IllegalArgumentException();
         sync.releaseShared(permits);
     }
@@ -578,7 +581,7 @@ public class Semaphore implements java.io.Serializable {
      * <p>This method is typically used for debugging and testing purposes.
      * @return the number of permits available in this semaphore.
      */
-    public int availablePermits() {
+    public int availablePermits() { //剩余可用的许可
         return sync.getPermits();
     }
 
@@ -587,7 +590,7 @@ public class Semaphore implements java.io.Serializable {
      * @return the number of permits 
      */
     public int drainPermits() {
-        return sync.drainPermits();
+        return sync.drainPermits(); //清空许可
     }
 
     /**
@@ -599,7 +602,7 @@ public class Semaphore implements java.io.Serializable {
      * @param reduction the number of permits to remove
      * @throws IllegalArgumentException if reduction is negative
      */
-    protected void reducePermits(int reduction) {
+    protected void reducePermits(int reduction) {   //批量减少许可
 	if (reduction < 0) throw new IllegalArgumentException();
         sync.reducePermits(reduction);
     }
@@ -609,7 +612,7 @@ public class Semaphore implements java.io.Serializable {
      * @return true if this semaphore has fairness set true.
      */
     public boolean isFair() {
-        return sync instanceof FairSync;
+        return sync instanceof FairSync;    //是否公平
     }
 
     /**
@@ -623,7 +626,7 @@ public class Semaphore implements java.io.Serializable {
      * the lock.
      */
     public final boolean hasQueuedThreads() { 
-        return sync.hasQueuedThreads();
+        return sync.hasQueuedThreads(); //是否有等待的线程,由于有取消,不保证结果准确性;
     }
 
     /**
@@ -636,7 +639,7 @@ public class Semaphore implements java.io.Serializable {
      * @return the estimated number of threads waiting for this lock
      */
     public final int getQueueLength() {
-        return sync.getQueueLength();
+        return sync.getQueueLength();   //等待的队列长度
     }
 
     /**
