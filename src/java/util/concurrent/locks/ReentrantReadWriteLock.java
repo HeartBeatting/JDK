@@ -34,9 +34,8 @@
  */
 
 package java.util.concurrent.locks;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import java.util.*;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An implementation of {@link ReadWriteLock} supporting similar
@@ -230,7 +229,7 @@ public class ReentrantReadWriteLock
      * default (nonfair) ordering properties.
      */
     public ReentrantReadWriteLock() {
-        this(false);
+        this(false);    //默认是非公平锁
     }
 
     /**
@@ -241,7 +240,7 @@ public class ReentrantReadWriteLock
      */
     public ReentrantReadWriteLock(boolean fair) {
         sync = fair ? new FairSync() : new NonfairSync();
-        readerLock = new ReadLock(this);
+        readerLock = new ReadLock(this);    //实例化读写锁对象
         writerLock = new WriteLock(this);
     }
 
@@ -261,16 +260,22 @@ public class ReentrantReadWriteLock
          * The lower one representing the exclusive (writer) lock hold count,
          * and the upper the shared (reader) hold count.
          */
-
+        /**
+         * AQS的state字段被拆成两部分了：高16位表示获取读锁的次数，低16位表示
+         * 获取写锁的次数
+         */
         static final int SHARED_SHIFT   = 16;
+        // 每次线程获取读锁成功就会执行state+=SHARED_UNIT操作，不是+1因为
+        // 高16位表示获取读锁的次数
         static final int SHARED_UNIT    = (1 << SHARED_SHIFT);
+        // 允许读或写获取锁的最大次数，都是65535,因为超过次数,16位就不够用了 (state是int类型,最大长度为32位) -2^31 ~~ 2^31-1
         static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1;
         static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
 
         /** Returns the number of shared holds represented in count  */
-        static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
+        static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }     // 获取当前读锁的总数
         /** Returns the number of exclusive holds represented in count  */
-        static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }
+        static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }     // 获取当前写锁的总数
 
         /**
          * A counter for per-thread read hold counts.
@@ -279,6 +284,7 @@ public class ReentrantReadWriteLock
         static final class HoldCounter {
             int count = 0;
             // Use id, not reference, to avoid garbage retention
+            // 为了避免GC垃圾收集时候，还存在无意义的对线程的引用，导致GC无效，所以使用线程的ID，而不是线程的引用。
             final long tid = Thread.currentThread().getId();
         }
 
@@ -368,7 +374,7 @@ public class ReentrantReadWriteLock
          * both read and write holds that are all released during a
          * condition wait and re-established in tryAcquire.
          */
-
+        @Override
         protected final boolean tryRelease(int releases) {
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
@@ -376,10 +382,11 @@ public class ReentrantReadWriteLock
             boolean free = exclusiveCount(nextc) == 0;
             if (free)
                 setExclusiveOwnerThread(null);
-            setState(nextc);
+            setState(nextc);    //todo 这里不会有线程安全的问题吗?
             return free;
         }
 
+        @Override
         protected final boolean tryAcquire(int acquires) {
             /*
              * Walkthrough:
@@ -392,6 +399,11 @@ public class ReentrantReadWriteLock
              *    queue policy allows it. If so, update state
              *    and set owner.
              */
+            /**
+             * 1.read count 非空,write count也非空,锁持有者不是当前线程,直接失败
+             * 2.超出count上限,直接失败
+             * 3.如果是锁重入就获取锁成功,否则进度等待队列
+             */
             Thread current = Thread.currentThread();
             int c = getState();
             int w = exclusiveCount(c);
@@ -400,14 +412,15 @@ public class ReentrantReadWriteLock
                 if (w == 0 || current != getExclusiveOwnerThread())
                     return false;
                 if (w + exclusiveCount(acquires) > MAX_COUNT)
-                    throw new Error("Maximum lock count exceeded");
+                    throw new Error("Maximum lock count exceeded"); //超出上限了,写锁为什么数量会超过MAX_COUNT ? 因为它是可重入锁,每次获取重入锁都会往上加
                 // Reentrant acquire
-                setState(c + acquires);
+                setState(c + acquires);     //todo 这里没有线程安全问题吗?
                 return true;
             }
-            if (writerShouldBlock() ||
+            //c==0表示没有线程持有锁
+            if (writerShouldBlock() ||                  //writerShouldBlock 如果是非公平锁,返回false会继CAS执行compareAndSetState
                 !compareAndSetState(c, c + acquires))
-                return false;
+                return false;                           //如果是公平锁,判断有等待的线程才writerShouldBlock返回true, 这里就返回false,表示获取锁失败;
             setExclusiveOwnerThread(current);
             return true;
         }
@@ -439,7 +452,7 @@ public class ReentrantReadWriteLock
                     // Releasing the read lock has no effect on readers,
                     // but it may allow waiting writers to proceed if
                     // both read and write locks are now free.
-                    return nextc == 0;
+                    return nextc == 0;  //只有state变成0了,才是释放锁成功;如果是重入锁,需要多次释放的;
             }
         }
 
@@ -673,7 +686,7 @@ public class ReentrantReadWriteLock
     static final class NonfairSync extends Sync {
         private static final long serialVersionUID = -8159625535654395037L;
         final boolean writerShouldBlock() {
-            return false; // writers can always barge
+            return false; // writers can always barge   写一直不需要阻塞,会尝试竞争CAS修改state
         }
         final boolean readerShouldBlock() {
             /* As a heuristic to avoid indefinite writer starvation,
@@ -692,10 +705,10 @@ public class ReentrantReadWriteLock
      */
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -2274990926593161451L;
-        final boolean writerShouldBlock() {
+        final boolean writerShouldBlock() {     //写是否应该阻塞: 当有等待线程时,写就应该阻塞
             return hasQueuedPredecessors();
         }
-        final boolean readerShouldBlock() {
+        final boolean readerShouldBlock() {     //堵是否应该阻塞: 当有等待线程时,读也会阻塞
             return hasQueuedPredecessors();
         }
     }
