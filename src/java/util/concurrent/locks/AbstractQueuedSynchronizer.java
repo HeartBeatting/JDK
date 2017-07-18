@@ -616,7 +616,7 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
             thread = s.thread;                  //thread就指向下一个结点
         else {
             thread = null;
-            for (s = tail; s != null && s != node; s = s.prev)  //否则从tail开始依次寻找<=0的节点,找到最前面的一个线程(队列里的第一个) 为什么从尾部开始找? 避免null或者被取消的节点
+            for (s = tail; s != null && s != node; s = s.prev)  //否则从tail开始依次寻找<=0的节点,找到最前面的一个线程(队列里的第一个) 为什么从尾部开始找? 用这种办法可以跳过取消的节点
                 if (s.waitStatus <= 0)
                     thread = s.thread;
         }
@@ -1257,7 +1257,7 @@ public abstract class AbstractQueuedSynchronizer implements java.io.Serializable
     public final boolean releaseShared(int arg) {   //释放共享锁, arg只在semaphore里面有用吧; 共享锁的控制大概就是维护一个等待队列,唤醒的时候唤醒一个线程就行了.
         if (tryReleaseShared(arg)) {    //调用子类的方法释放成功后
             Node h = head;
-            if (h != null && h.waitStatus != 0)     //头结点不为空,并且waitStatus不为0 waitStatus的真正意义??? todo waitStatus=0是什么意思
+            if (h != null && h.waitStatus != 0)     //头结点不为空,并且waitStatus不为0 waitStatus的真正意义? 维护一个队列,如果其中某个节点被取消了或者之类的操作,直接修改节点的状态就行了,后续会判断状态的
                 unparkSuccessor(h);     //释放头节点, unpack释放一个许可, 线程就立马被唤醒了?
             return true;
         }
