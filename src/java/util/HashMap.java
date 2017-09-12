@@ -284,8 +284,10 @@ public class HashMap<K,V>
      * otherwise encounter collisions for hashCodes that do not differ
      * in lower bits.
      */
+    //JDK8里面是采用: 右位移16位，正好是32bit的一半，自己的高半区和低半区做异或，就是为了混合原始哈希码的高位和低位，以此来加大低位的随机性。而且混合后的低位掺杂了高位的部分特征，这样高位的信息也被变相保留下来。
+    //目的都是为了对hashcode的进行优化,减少碰撞,让数据更平均的分配到各个hash桶中
     static int hash(int h) {
-	return useNewHash ? newHash(h) : oldHash(h);
+	    return useNewHash ? newHash(h) : oldHash(h);
     }
 
     static int hash(Object key) {
@@ -306,6 +308,7 @@ public class HashMap<K,V>
         //由于lenght必须是2的次方,这时位运算&,正好和取模的结果一致
         //相当于取模,做到了将数据平均分散到各个散列桶中
         //位运算&(与), |(或), ^(异或)
+        // 这也正好解释了为什么HashMap的数组长度要取2的整次幂。因为这样（数组长度-1）正好相当于一个低位掩码.“与”操作的结果就是散列值的高位全部归零，只保留低位值，用来做数组下标访问。以初始长度16为例，16-1=15.
         return h & (length-1);
     }
  

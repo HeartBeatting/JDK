@@ -6,6 +6,7 @@
  */
 
 package java.util.concurrent.atomic;
+
 import sun.misc.Unsafe;
 
 /**
@@ -17,23 +18,24 @@ import sun.misc.Unsafe;
  * {@link java.lang.Integer}. However, this class does extend
  * <tt>Number</tt> to allow uniform access by tools and utilities that
  * deal with numerically-based classes.
- * 
  *
- * @since 1.5
  * @author Doug Lea
-*/
-public class AtomicInteger extends Number implements java.io.Serializable { 
+ * @since 1.5
+ */
+public class AtomicInteger extends Number implements java.io.Serializable {
     private static final long serialVersionUID = 6214790243416807050L;
 
     // setup to use Unsafe.compareAndSwapInt for updates
-    private static final Unsafe unsafe =  Unsafe.getUnsafe();
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
     private static final long valueOffset;
 
     static {
-      try {
-        valueOffset = unsafe.objectFieldOffset
-            (AtomicInteger.class.getDeclaredField("value"));
-      } catch(Exception ex) { throw new Error(ex); }
+        try {
+            valueOffset = unsafe.objectFieldOffset
+                    (AtomicInteger.class.getDeclaredField("value"));
+        } catch (Exception ex) {
+            throw new Error(ex);
+        }
     }
 
     private volatile int value;
@@ -61,7 +63,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
     public final int get() {
         return value;
     }
-  
+
     /**
      * Set to the given value.
      *
@@ -78,74 +80,79 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the previous value
      */
     public final int getAndSet(int newValue) {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             if (compareAndSet(current, newValue))
                 return current;
         }
     }
-  
-  
+
+
     /**
      * Atomically set the value to the given updated value
      * if the current value <tt>==</tt> the expected value.
+     *
      * @param expect the expected value
      * @param update the new value
      * @return true if successful. False return indicates that
      * the actual value was not equal to the expected value.
      */
     public final boolean compareAndSet(int expect, int update) {
-      return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+        return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
     }
 
     /**
      * Atomically set the value to the given updated value
      * if the current value <tt>==</tt> the expected value.
      * May fail spuriously.
+     *
      * @param expect the expected value
      * @param update the new value
      * @return true if successful.
      */
     public final boolean weakCompareAndSet(int expect, int update) {
-      return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+        return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
     }
 
 
     /**
      * Atomically increment by one the current value.
+     *
      * @return the previous value
      */
     public final int getAndIncrement() {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current + 1;
             if (compareAndSet(current, next))
                 return current;
         }
     }
-  
-  
+
+
     /**
      * Atomically decrement by one the current value.
+     *
      * @return the previous value
      */
     public final int getAndDecrement() {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current - 1;
             if (compareAndSet(current, next))
                 return current;
         }
     }
-  
-  
+
+
     /**
      * Atomically add the given value to current value.
+     *
      * @param delta the value to add
      * @return the previous value
      */
     public final int getAndAdd(int delta) {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current + delta;
             if (compareAndSet(current, next))
@@ -155,38 +162,41 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 
     /**
      * Atomically increment by one the current value.
+     *
      * @return the updated value
      */
     public final int incrementAndGet() {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current + 1;
             if (compareAndSet(current, next))
                 return next;
         }
     }
-    
+
     /**
      * Atomically decrement by one the current value.
+     *
      * @return the updated value
      */
     public final int decrementAndGet() {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current - 1;
             if (compareAndSet(current, next))
                 return next;
         }
     }
-  
-  
+
+
     /**
      * Atomically add the given value to current value.
+     *
      * @param delta the value to add
      * @return the updated value
      */
     public final int addAndGet(int delta) {
-        for (;;) {
+        for (; ; ) {
             int current = get();
             int next = current + delta;
             if (compareAndSet(current, next))
@@ -196,6 +206,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 
     /**
      * Returns the String representation of the current value.
+     *
      * @return the String representation of the current value.
      */
     public String toString() {
@@ -204,19 +215,19 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 
 
     public int intValue() {
-	return get();
+        return get();
     }
 
     public long longValue() {
-	return (long)get();
+        return (long) get();
     }
 
     public float floatValue() {
-	return (float)get();
+        return (float) get();
     }
 
     public double doubleValue() {
-	return (double)get();
+        return (double) get();
     }
 
 }

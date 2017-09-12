@@ -186,8 +186,8 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
     /* 
      * Read vs write count extraction constants and functions.
      * Lock state is logically divided into two shorts: The lower
-     * one representing the exclusive (writer) lock hold count,
-     * and the upper the shared (reader) hold count.
+     * one representing the exclusive (writer) lock hold count,     //state低16位表示写锁count
+     * and the upper the shared (reader) hold count.                //state高16位表示读锁(共享锁)count
      */
 
     static final int SHARED_SHIFT   = 16;
@@ -195,8 +195,10 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
     static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;  // = 65535
 
     /** Returns the number of shared holds represented in count  */
+    //共享锁数量,也就是读锁的数量
     static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
     /** Returns the number of exclusive holds represented in count  */
+    //独占锁数量,也就是写锁数量
     static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }     //与或操作 范围为 0-65535, 在c<65535 时就等于c
 
     /**
@@ -210,7 +212,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         /**
          * Perform write lock. Allows fast path in non-fair version.
          */
-        abstract void wlock();
+        abstract void wlock();      //调用这个方法,会触发写锁
 
         /**
          * Perform non-fair tryLock for write.  tryAcquire is           //用于非公平的写锁(排他锁)
@@ -219,17 +221,17 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          */
         final boolean nonfairTryAcquire(int acquires) {
             // mask out readlocks if called from condition methods
-            acquires = exclusiveCount(acquires);
-            Thread current = Thread.currentThread();
+            acquires = exclusiveCount(acquires);    //读锁的数量
+            Thread current = Thread.currentThread();    //别每次都调用Thread.currentThread(),把当前线程缓存下来
             int c = getState();
             int w = exclusiveCount(c);
-            if (w + acquires >= SHARED_UNIT)
-                throw new Error("Maximum lock count exceeded");
+            if (w + acquires >= SHARED_UNIT)    //acquires >= SHARED_UNIT 表示增加的写锁数量
+                throw new Error("Maximum lock count exceeded");     //超出上限
             if (c != 0 && (w == 0 || current != owner))
                 return false;
-            if (!compareAndSetState(c, c + acquires))
+            if (!compareAndSetState(c, c + acquires))   //CAS
                 return false;
-            owner = current;
+            owner = current;    //获取锁成功,设置当前owner线程
             return true;
         }
 
@@ -239,20 +241,20 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         final int nonfairTryAcquireShared(int acquires) {
             for (;;) {
                 int c = getState();
-                int nextc = c + (acquires << SHARED_SHIFT);
+                int nextc = c + (acquires << SHARED_SHIFT);     //acquires << SHARED_SHIFT表示增加的读锁数量
                 if (nextc < c)
                     throw new Error("Maximum lock count exceeded");
-                if (exclusiveCount(c) != 0 &&
-                    owner != Thread.currentThread())
+                if (exclusiveCount(c) != 0 &&           //exclusiveCount(c)返回的是写锁数量,非0表示还有线程在写
+                    owner != Thread.currentThread())    //当前线程不是持有者,不能获取读锁,不允许读;当前线程是持有者,允许获取读锁;
                     return -1;
-                if (compareAndSetState(c, nextc))
+                if (compareAndSetState(c, nextc))       //CAS增加读锁的数量
                     return 1;
                 // Recheck count if lost CAS
             }
         }
 
         @Override
-        protected final boolean tryRelease(int releases) {      //释放锁
+        protected final boolean tryRelease(int releases) {      //释放写锁(独占锁)
             Thread current = Thread.currentThread();
             int c = getState();
             if (owner != current)
@@ -263,12 +265,12 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
                 free = true;
                 owner = null;
             }
-            setState(nextc);
+            setState(nextc);    // 直接这样没有线程安全问题吗? 应该没有,因为只有当前锁的持有线程才能释放锁,也就是其实是单线程的操作
             return free;
         }
 
         @Override
-        protected final boolean tryReleaseShared(int releases) {    //释放共享锁
+        protected final boolean tryReleaseShared(int releases) {    //释放读锁(共享锁)
             for (;;) {
                 int c = getState();
                 int nextc = c - (releases << SHARED_SHIFT);
@@ -281,7 +283,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 
         @Override
         protected final boolean isHeldExclusively() {
-            return exclusiveCount(getState()) != 0 &&
+            return exclusiveCount(getState()) != 0 &&       //exclusiveCount(getState())写锁数量不为1,并且当前线程是锁的拥有者
                 owner == Thread.currentThread();
         }
 
@@ -315,7 +317,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * Reconstitute this lock instance from a stream
          * @param s the stream
          */
-        private void readObject(java.io.ObjectInputStream s)
+        private void readObject(java.io.ObjectInputStream s)        //反序列化,state初始化为0
             throws java.io.IOException, ClassNotFoundException {
             s.defaultReadObject();
             setState(0); // reset to unlocked state
@@ -338,7 +340,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 
         // Use fastpath for main write lock method
         final void wlock() {
-            if (compareAndSetState(0, 1))
+            if (compareAndSetState(0, 1))       //非公平的写锁会尝试CAS竞争修改state
                 owner = Thread.currentThread();
             else
                 acquire(1);
@@ -377,10 +379,10 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
                     if (owner != current)
                         return -1;
                 } else {
-		    Thread first = getFirstQueuedThread();
-		    if (first != null && first != current)
-			return -1;
-		}
+                    Thread first = getFirstQueuedThread();
+                    if (first != null && first != current)
+                        return -1;
+                }
                 int nextc = c + (acquires << SHARED_SHIFT);
                 if (nextc < c)
                     throw new Error("Maximum lock count exceeded");
@@ -391,16 +393,16 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         }
 
         final void wlock() { // no fast path
-            acquire(1);
+            acquire(1);     //公平的写锁会进入等待队列
         }
     }
 
     /**
      * The lock returned by method {@link ReentrantReadWriteLock#readLock}.
      */
-    public static class ReadLock implements Lock, java.io.Serializable  {
+    public static class ReadLock implements Lock, java.io.Serializable  {       //读锁
         private static final long serialVersionUID = -5992448646407690164L;
-        private final Sync sync;
+        private final Sync sync;    //持有Sync
 
         /**
          * Constructor for use by subclasses
@@ -422,7 +424,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
          * purposes and lies dormant until the read lock has been acquired.
          */
         public void lock() {
-            sync.acquireShared(1);
+            sync.acquireShared(1);  //读锁是锁的共享锁
         }
 
         /**

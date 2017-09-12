@@ -40,7 +40,7 @@ public class AtomicBoolean implements java.io.Serializable {
      * @param initialValue the initial value
      */
     public AtomicBoolean(boolean initialValue) {
-        value = initialValue ? 1 : 0;
+        value = initialValue ? 1 : 0;       //1 true, 0 false
     }
 
     /**
@@ -105,7 +105,7 @@ public class AtomicBoolean implements java.io.Serializable {
         for (;;) {
             boolean current = get();
             if (compareAndSet(current, newValue))
-                return current;
+                return current;     //CAS修改成功后,返回原来的值
         }
     }
 

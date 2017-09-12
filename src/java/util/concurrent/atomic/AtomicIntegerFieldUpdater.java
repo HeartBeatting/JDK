@@ -6,7 +6,9 @@
  */
 
 package java.util.concurrent.atomic;
+
 import sun.misc.Unsafe;
+
 import java.lang.reflect.*;
 
 /**
@@ -15,29 +17,31 @@ import java.lang.reflect.*;
  * This class is designed for use in atomic data structures in which
  * several fields of the same node are independently subject to atomic
  * updates.
- *
+ * <p/>
  * <p> Note that the guarantees of the <tt>compareAndSet</tt> method
  * in this class are weaker than in other atomic classes. Because this
  * class cannot ensure that all uses of the field are appropriate for
  * purposes of atomic access, it can guarantee atomicity and volatile
  * semantics only with respect to other invocations of
  * <tt>compareAndSet</tt> and <tt>set</tt>.
- * @since 1.5
- * @author Doug Lea
+ *
  * @param <T> The type of the object holding the updatable field
+ * @author Doug Lea
+ * @since 1.5
  */
-public abstract class  AtomicIntegerFieldUpdater<T>  {
+public abstract class AtomicIntegerFieldUpdater<T> {
     /**
      * Creates an updater for objects with the given field.  The Class
      * argument is needed to check that reflective types and generic
      * types match.
-     * @param tclass the class of the objects holding the field
+     *
+     * @param tclass    the class of the objects holding the field
      * @param fieldName the name of the field to be updated.
      * @return the updater
      * @throws IllegalArgumentException if the field is not a
-     * volatile integer type.
-     * @throws RuntimeException with a nested reflection-based
-     * exception if the class does not hold field or is the wrong type.
+     *                                  volatile integer type.
+     * @throws RuntimeException         with a nested reflection-based
+     *                                  exception if the class does not hold field or is the wrong type.
      */
     public static <U> AtomicIntegerFieldUpdater<U> newUpdater(Class<U> tclass, String fieldName) {
         return new AtomicIntegerFieldUpdaterImpl<U>(tclass, fieldName);
@@ -56,15 +60,16 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
      * atomic with respect to other calls to <tt>compareAndSet</tt> and
      * <tt>set</tt>, but not necessarily with respect to other
      * changes in the field.
-     * @param obj An object whose field to conditionally set
+     *
+     * @param obj    An object whose field to conditionally set
      * @param expect the expected value
      * @param update the new value
      * @return true if successful.
      * @throws ClassCastException if <tt>obj</tt> is not an instance
-     * of the class possessing the field established in the constructor.
+     *                            of the class possessing the field established in the constructor.
      */
 
-    public abstract boolean compareAndSet(T obj, int expect, int update);
+    public abstract boolean compareAndSet(T obj, int expect, int update);   //obj 是实例变量
 
     /**
      * Atomically set the value of the field of the given object managed
@@ -73,12 +78,13 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
      * atomic with respect to other calls to <tt>compareAndSet</tt> and
      * <tt>set</tt>, but not necessarily with respect to other
      * changes in the field, and may fail spuriously.
-     * @param obj An object whose field to conditionally set
+     *
+     * @param obj    An object whose field to conditionally set
      * @param expect the expected value
      * @param update the new value
      * @return true if successful.
      * @throws ClassCastException if <tt>obj</tt> is not an instance
-     * of the class possessing the field established in the constructor.
+     *                            of the class possessing the field established in the constructor.
      */
 
     public abstract boolean weakCompareAndSet(T obj, int expect, int update);
@@ -87,13 +93,15 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
      * Set the field of the given object managed by this updater. This
      * operation is guaranteed to act as a volatile store with respect
      * to subsequent invocations of <tt>compareAndSet</tt>.
-     * @param obj An object whose field to set
+     *
+     * @param obj      An object whose field to set
      * @param newValue the new value
      */
     public abstract void set(T obj, int newValue);
 
     /**
      * Get the current value held in the field by the given object.
+     *
      * @param obj An object whose field to get
      * @return the current value
      */
@@ -102,12 +110,12 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
     /**
      * Set to the given value and return the old value.
      *
-     * @param obj An object whose field to get and set
+     * @param obj      An object whose field to get and set
      * @param newValue the new value
      * @return the previous value
      */
     public int getAndSet(T obj, int newValue) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             if (compareAndSet(obj, current, newValue))
                 return current;
@@ -116,11 +124,12 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically increment by one the current value.
+     *
      * @param obj An object whose field to get and set
      * @return the previous value;
      */
     public int getAndIncrement(T obj) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current + 1;
             if (compareAndSet(obj, current, next))
@@ -131,11 +140,12 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically decrement by one the current value.
+     *
      * @param obj An object whose field to get and set
      * @return the previous value;
      */
     public int getAndDecrement(T obj) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current - 1;
             if (compareAndSet(obj, current, next))
@@ -146,12 +156,13 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically add the given value to current value.
-     * @param obj An object whose field to get and set
+     *
+     * @param obj   An object whose field to get and set
      * @param delta the value to add
      * @return the previous value;
      */
     public int getAndAdd(T obj, int delta) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current + delta;
             if (compareAndSet(obj, current, next))
@@ -161,11 +172,12 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically increment by one the current value.
+     *
      * @param obj An object whose field to get and set
      * @return the updated value;
      */
     public int incrementAndGet(T obj) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current + 1;
             if (compareAndSet(obj, current, next))
@@ -176,11 +188,12 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically decrement by one the current value.
+     *
      * @param obj An object whose field to get and set
      * @return the updated value;
      */
     public int decrementAndGet(T obj) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current - 1;
             if (compareAndSet(obj, current, next))
@@ -191,12 +204,13 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
 
     /**
      * Atomically add the given value to current value.
-     * @param obj An object whose field to get and set
+     *
+     * @param obj   An object whose field to get and set
      * @param delta the value to add
      * @return the updated value;
      */
     public int addAndGet(T obj, int delta) {
-        for (;;) {
+        for (; ; ) {
             int current = get(obj);
             int next = current + delta;
             if (compareAndSet(obj, current, next))
@@ -208,35 +222,35 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
      * Standard hotspot implementation using intrinsics
      */
     private static class AtomicIntegerFieldUpdaterImpl<T> extends AtomicIntegerFieldUpdater<T> {
-        private static final Unsafe unsafe =  Unsafe.getUnsafe();
+        private static final Unsafe unsafe = Unsafe.getUnsafe();
         private final long offset;
         private final Class<T> tclass;
         private final Class cclass;
 
         AtomicIntegerFieldUpdaterImpl(Class<T> tclass, String fieldName) {
             Field field = null;
-	    Class caller = null;
-	    int modifiers = 0;
+            Class caller = null;
+            int modifiers = 0;
             try {
                 field = tclass.getDeclaredField(fieldName);
-		caller = sun.reflect.Reflection.getCallerClass(3);
-		modifiers = field.getModifiers();
+                caller = sun.reflect.Reflection.getCallerClass(3);
+                modifiers = field.getModifiers();
                 sun.reflect.misc.ReflectUtil.ensureMemberAccess(
-                    caller, tclass, null, modifiers); 
-		sun.reflect.misc.ReflectUtil.checkPackageAccess(tclass);
-            } catch(Exception ex) {
+                        caller, tclass, null, modifiers);
+                sun.reflect.misc.ReflectUtil.checkPackageAccess(tclass);
+            } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
 
             Class fieldt = field.getType();
             if (fieldt != int.class)
                 throw new IllegalArgumentException("Must be integer type");
-            
+
             if (!Modifier.isVolatile(modifiers))
                 throw new IllegalArgumentException("Must be volatile type");
-         
-	    this.cclass = (Modifier.isProtected(modifiers) &&
-			   caller != tclass) ? caller : null;
+
+            this.cclass = (Modifier.isProtected(modifiers) &&
+                    caller != tclass) ? caller : null;
             this.tclass = tclass;
             offset = unsafe.objectFieldOffset(field);
         }
@@ -244,49 +258,49 @@ public abstract class  AtomicIntegerFieldUpdater<T>  {
         public boolean compareAndSet(T obj, int expect, int update) {
             if (!tclass.isInstance(obj))
                 throw new ClassCastException();
-	    if (cclass != null)
-	        ensureProtectedAccess(obj);
+            if (cclass != null)
+                ensureProtectedAccess(obj);
             return unsafe.compareAndSwapInt(obj, offset, expect, update);
         }
 
         public boolean weakCompareAndSet(T obj, int expect, int update) {
             if (!tclass.isInstance(obj))
                 throw new ClassCastException();
-	    if (cclass != null)
-	        ensureProtectedAccess(obj);
+            if (cclass != null)
+                ensureProtectedAccess(obj);
             return unsafe.compareAndSwapInt(obj, offset, expect, update);
         }
 
         public void set(T obj, int newValue) {
             if (!tclass.isInstance(obj))
                 throw new ClassCastException();
-	    if (cclass != null)
-	        ensureProtectedAccess(obj);
+            if (cclass != null)
+                ensureProtectedAccess(obj);
             unsafe.putIntVolatile(obj, offset, newValue);
         }
 
         public final int get(T obj) {
             if (!tclass.isInstance(obj))
                 throw new ClassCastException();
-	    if (cclass != null)
-	        ensureProtectedAccess(obj);
+            if (cclass != null)
+                ensureProtectedAccess(obj);
             return unsafe.getIntVolatile(obj, offset);
         }
 
-	private void ensureProtectedAccess(T obj) {
-	    if (cclass.isInstance(obj)) {
-		return;
-	    }
-	    throw new RuntimeException(
-                new IllegalAccessException("Class " +
-		    cclass.getName() +
-                    " can not access a protected member of class " +
-                    tclass.getName() +
-		    " using an instance of " +
-                    obj.getClass().getName()
-		)
-	    );
-	}
+        private void ensureProtectedAccess(T obj) {
+            if (cclass.isInstance(obj)) {
+                return;
+            }
+            throw new RuntimeException(
+                    new IllegalAccessException("Class " +
+                            cclass.getName() +
+                            " can not access a protected member of class " +
+                            tclass.getName() +
+                            " using an instance of " +
+                            obj.getClass().getName()
+                    )
+            );
+        }
     }
 }
 

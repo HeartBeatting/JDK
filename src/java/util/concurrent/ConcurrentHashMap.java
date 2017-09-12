@@ -6,12 +6,10 @@
  */
 
 package java.util.concurrent;
-import java.util.concurrent.locks.*;
-import java.util.*;
-import java.io.Serializable;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A hash table supporting full concurrency of retrievals and
@@ -25,8 +23,8 @@ import java.io.ObjectOutputStream;
  * interoperable with <tt>Hashtable</tt> in programs that rely on its
  * thread safety but not on its synchronization details.
  *
- * <p> Retrieval operations (including <tt>get</tt>) generally do not
- * block, so may overlap with update operations (including
+ * <p> Retrieval operations (including <tt>get</tt>) generally do not       //get等检索操作不会锁
+ * block, so may overlap with update operations (including                  //但是可能会和update操作同时进行
  * <tt>put</tt> and <tt>remove</tt>). Retrievals reflect the results
  * of the most recently <em>completed</em> update operations holding
  * upon their onset.  For aggregate operations such as <tt>putAll</tt>
@@ -46,9 +44,9 @@ import java.io.ObjectOutputStream;
  * in hash tables is essentially random, the actual concurrency will
  * vary.  Ideally, you should choose a value to accommodate as many
  * threads as will ever concurrently modify the table. Using a
- * significantly higher value than you need can waste space and time,
- * and a significantly lower value can lead to thread contention. But
- * overestimates and underestimates within an order of magnitude do
+ * significantly higher value than you need can waste space and time,   //使用明显高于需要的并发数会浪费空间和时间
+ * and a significantly lower value can lead to thread contention. But   //过低回导致线程竞争
+ * overestimates and underestimates within an order of magnitude do     //但正常影响不大
  * not usually have much noticeable impact. A value of one is
  * appropriate when it is known that only one thread will modify and
  * all others will only read. Also, resizing this or any other kind of
@@ -81,6 +79,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * The basic strategy is to subdivide the table among Segments,
      * each of which itself is a concurrently readable hash table.
      */
+    // 把整个table切分成多个Segments, 每一个是一个独立的线程安全的 hash table
 
     /* ---------------- Constants -------------- */
 
@@ -113,13 +112,13 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * The maximum number of segments to allow; used to bound
      * constructor arguments.
      */
-    static final int MAX_SEGMENTS = 1 << 16; // slightly conservative
+    static final int MAX_SEGMENTS = 1 << 16; // slightly conservative //限制segments最大数量
 
     /**
-     * Number of unsynchronized retries in size and containsValue
+     * Number of unsynchronized retries in size and containsValue       //不加锁的最大重试两次
      * methods before resorting to locking. This is used to avoid
      * unbounded retries if tables undergo continuous modification
-     * which would make it impossible to obtain an accurate result.
+     * which would make it impossible to obtain an accurate result.     //可能获取不到正在修改的精确结果
      */
     static final int RETRIES_BEFORE_LOCK = 2;
 
@@ -153,7 +152,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * @param x the object serving as a key
      * @return the hash code
      */
-    static int hash(Object x) {
+    static int hash(Object x) {     //用于对Object.hashCode()进行再hash,使hash散列分布更平均,减少碰撞
         int h = x.hashCode();
         h += ~(h << 9);
         h ^=  (h >>> 14);
@@ -167,7 +166,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * @param hash the hash code for the key
      * @return the segment
      */
-    final Segment<K,V> segmentFor(int hash) {
+    final Segment<K,V> segmentFor(int hash) {   //寻址sement
         return (Segment<K,V>) segments[(hash >>> segmentShift) & segmentMask];
     }
 
@@ -177,11 +176,11 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * ConcurrentHashMap list entry. Note that this is never exported
      * out as a user-visible Map.Entry. 
      * 
-     * Because the value field is volatile, not final, it is legal wrt
+     * Because the value field is volatile, not final, it is legal wrt  //value不是final类型,如果暴露这个对象,非同步代码读取这个对象可能看不到初始化后的值
      * the Java Memory Model for an unsynchronized reader to see null
      * instead of initial value when read via a data race.  Although a
      * reordering leading to this is not likely to ever actually
-     * occur, the Segment.readValueUnderLock method is used as a
+     * occur, the Segment.readValueUnderLock method is used as a        //readValueUnderLock 是用于读取到null值时备用的方法
      * backup in case a null (pre-initialized) value is ever seen in
      * an unsynchronized access method.
      */
@@ -192,10 +191,10 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         final HashEntry<K,V> next;
 
         HashEntry(K key, int hash, HashEntry<K,V> next, V value) {
-            this.key = key;
-            this.hash = hash;
-            this.next = next;
-            this.value = value;
+            this.key = key;     //key 每个entry是一个key/value键值对
+            this.hash = hash;   //key的hash值
+            this.next = next;   //同一个桶中是一个链表结构,指向下一个HashEntry结点
+            this.value = value; //键值对的value
         }
     }
 
@@ -254,13 +253,13 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
          * used during bulk-read methods to make sure they see a
          * consistent snapshot: If modCounts change during a traversal
          * of segments computing size or checking containsValue, then
-         * we might have an inconsistent view of state so (usually)
+         * we might have an inconsistent view of state so (usually)     //用于遍历时重试
          * must retry.
          */
-        transient int modCount;
+        transient int modCount;     //修改次数,在对Segment进行put等操作时会修改这个值
 
         /**
-         * The table is rehashed when its size exceeds this threshold.
+         * The table is rehashed when its size exceeds this threshold.  //rehash的size的临界值
          * (The value of this field is always (int)(capacity *
          * loadFactor).)
          */
@@ -270,7 +269,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
          * The per-segment table. Declared as a raw type, casted
          * to HashEntry<K,V> on each use.
          */
-        transient volatile HashEntry[] table;
+        transient volatile HashEntry[] table;   //每个Segment里的entry数组
 
         /**
          * The load factor for the hash table.  Even though this value
@@ -278,7 +277,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
          * links to outer object.
          * @serial
          */
-        final float loadFactor;
+        final float loadFactor;     //默认.75
 
         Segment(int initialCapacity, float lf) {
             loadFactor = lf;
@@ -305,11 +304,11 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         /**
          * Read value field of an entry under lock. Called if value
          * field ever appears to be null. This is possible only if a
-         * compiler happens to reorder a HashEntry initialization with
+         * compiler happens to reorder a HashEntry initialization with  //可能编译器在HashEntry初始化时重排序了,这是符合内存模型的
          * its table assignment, which is legal under memory model
          * but is not known to ever occur.
          */
-        V readValueUnderLock(HashEntry<K,V> e) {
+        V readValueUnderLock(HashEntry<K,V> e) {    //加锁避免了重排序,保证了可见性
             lock();
             try {
                 return e.value;
@@ -320,23 +319,23 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 
         /* Specialized implementations of map methods */
 
-        V get(Object key, int hash) {
-            if (count != 0) { // read-volatile
+        V get(Object key, int hash) {   //所以这个get方法是线程安全的
+            if (count != 0) { // read-volatile  //count是volatile类型的,保证了可见性和偏序关系
                 HashEntry<K,V> e = getFirst(hash);
                 while (e != null) {
-                    if (e.hash == hash && key.equals(e.key)) {
+                    if (e.hash == hash && key.equals(e.key)) {  //满足hash相同, key相等就表示找到对应的键值对了
                         V v = e.value;
-                        if (v != null)
+                        if (v != null)  //找到值了就返回,否则加锁再获取
                             return v;
                         return readValueUnderLock(e); // recheck
                     }
-                    e = e.next;
+                    e = e.next;     //继续找下一个entry
                 }
             }
             return null;
         }
 
-        boolean containsKey(Object key, int hash) {
+        boolean containsKey(Object key, int hash) { //跟上面方法类似
             if (count != 0) { // read-volatile
                 HashEntry<K,V> e = getFirst(hash);
                 while (e != null) {
@@ -348,7 +347,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             return false;
         }
 
-        boolean containsValue(Object value) {
+        boolean containsValue(Object value) {   //跟上面方法类似,也是线程安全的
             if (count != 0) { // read-volatile
                 HashEntry[] tab = table;
                 int len = tab.length;
@@ -368,7 +367,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         }
 
         boolean replace(K key, int hash, V oldValue, V newValue) {
-            lock();
+            lock();     //直接对当前Segment加独占锁,保证可见性和线程安全
             try {
                 HashEntry<K,V> e = getFirst(hash);
                 while (e != null && (e.hash != hash || !key.equals(e.key)))
@@ -385,7 +384,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             }
         }
 
-        V replace(K key, int hash, V newValue) {
+        V replace(K key, int hash, V newValue) {    //同上,线程安全的
             lock();
             try {
                 HashEntry<K,V> e = getFirst(hash);
@@ -404,23 +403,23 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         }
 
 
-        V put(K key, int hash, V value, boolean onlyIfAbsent) {
+        V put(K key, int hash, V value, boolean onlyIfAbsent) {     //同上,线程安全的
             lock();
             try {
                 int c = count;
                 if (c++ > threshold) // ensure capacity
-                    rehash();
+                    rehash();   //rehash()时必须加锁,这也是HashMap为什么不是线程安全的一个原因,put时没有加锁
                 HashEntry[] tab = table;
                 int index = hash & (tab.length - 1);
                 HashEntry<K,V> first = (HashEntry<K,V>) tab[index];
-                HashEntry<K,V> e = first;
-                while (e != null && (e.hash != hash || !key.equals(e.key)))
-                    e = e.next;
+                HashEntry<K,V> e = first;   //hash桶中的第一个entry
+                while (e != null && (e.hash != hash || !key.equals(e.key)))     //e为空直接跳过
+                    e = e.next;     //直到找到hash相同,key相等,跳出循环;下面的put操作会覆盖这个key的值,因为put操作是后面覆盖前面的
 
                 V oldValue;
                 if (e != null) {
                     oldValue = e.value;
-                    if (!onlyIfAbsent)
+                    if (!onlyIfAbsent)  //用于putIfAbsent方法
                         e.value = value;
                 }
                 else {
@@ -429,16 +428,16 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
                     tab[index] = new HashEntry<K,V>(key, hash, first, value);
                     count = c; // write-volatile
                 }
-                return oldValue;
+                return oldValue;    //put操作默认会用新值覆盖老的值,并返回老的值
             } finally {
                 unlock();
             }
         }
 
-        void rehash() {
+        void rehash() {     //对当前Segment重新进行hash,用于扩容时,重新散列
             HashEntry[] oldTable = table;            
             int oldCapacity = oldTable.length;
-            if (oldCapacity >= MAXIMUM_CAPACITY)
+            if (oldCapacity >= MAXIMUM_CAPACITY)    //当前size以及大于2^30时,就不在进行重新散列了
                 return;
 
             /*
@@ -448,19 +447,19 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
              * offset. We eliminate unnecessary node creation by catching
              * cases where old nodes can be reused because their next
              * fields won't change. Statistically, at the default
-             * threshold, only about one-sixth of them need cloning when
+             * threshold, only about one-sixth of them need cloning when    //在默认threshold,只有六分之一的node在扩容时需要拷贝
              * a table doubles. The nodes they replace will be garbage
-             * collectable as soon as they are no longer referenced by any
+             * collectable as soon as they are no longer referenced by any  //被替换的节点,在没有线程应用时会被垃圾回收
              * reader thread that may be in the midst of traversing table
              * right now.
              */
 
-            HashEntry[] newTable = new HashEntry[oldCapacity << 1];
-            threshold = (int)(newTable.length * loadFactor);
+            HashEntry[] newTable = new HashEntry[oldCapacity << 1];     //扩容一倍
+            threshold = (int)(newTable.length * loadFactor);            //赋值新的threshold
             int sizeMask = newTable.length - 1;
             for (int i = 0; i < oldCapacity ; i++) {
                 // We need to guarantee that any existing reads of old Map can
-                //  proceed. So we cannot yet null out each bin.
+                //  proceed. So we cannot yet null out each bin.        //为了使正在读的线程可以继续进行,不清空oldTable
                 HashEntry<K,V> e = (HashEntry<K,V>)oldTable[i];
 
                 if (e != null) {
@@ -477,16 +476,16 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
                         int lastIdx = idx;
                         for (HashEntry<K,V> last = next;
                              last != null;
-                             last = last.next) {
+                             last = last.next) {    //遍历next,一直找到最后一个; hashMap的结构是table[]数组作为一个桶,用hash定位数组的下标; 数组的每个节点上是一个entry的链表结构,可以遍历的
                             int k = last.hash & sizeMask;
                             if (k != lastIdx) {
                                 lastIdx = k;
                                 lastRun = last;
                             }
                         }
-                        newTable[lastIdx] = lastRun;
+                        newTable[lastIdx] = lastRun;    //最后一个entry
 
-                        // Clone all remaining nodes
+                        // Clone all remaining nodes    //拷贝剩下的节点
                         for (HashEntry<K,V> p = e; p != lastRun; p = p.next) {
                             int k = p.hash & sizeMask;
                             HashEntry<K,V> n = (HashEntry<K,V>)newTable[k];
@@ -496,14 +495,14 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
                     }
                 }
             }
-            table = newTable;
+            table = newTable;   //替换原来的table, table 为 volatile类型的
         }
 
         /**
          * Remove; match on key only if value null, else match both.
          */
         V remove(Object key, int hash, Object value) {
-            lock();
+            lock();     //加锁保证线程安全
             try {
                 int c = count - 1;
                 HashEntry[] tab = table;
@@ -538,7 +537,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 
         void clear() {
             if (count != 0) {
-                lock();
+                lock();     //也是加锁保证线程安全; 由此看来Sement里面的以上方法都保证了当前Segment的线程安全;
                 try {
                     HashEntry[] tab = table;
                     for (int i = 0; i < tab.length ; i++)
@@ -565,7 +564,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * @param loadFactor  the load factor threshold, used to control resizing.
      * Resizing may be performed when the average number of elements per
      * bin exceeds this threshold.
-     * @param concurrencyLevel the estimated number of concurrently
+     * @param concurrencyLevel the estimated number of concurrently         //concurrencyLevel-- 预计的并发线程数
      * updating threads. The implementation performs internal sizing
      * to try to accommodate this many threads.  
      * @throws IllegalArgumentException if the initial capacity is
@@ -577,31 +576,31 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         if (!(loadFactor > 0) || initialCapacity < 0 || concurrencyLevel <= 0)
             throw new IllegalArgumentException();
 
-        if (concurrencyLevel > MAX_SEGMENTS)
+        if (concurrencyLevel > MAX_SEGMENTS)    //限制最大的桶数,为了适应预计的并发数,Segment数需要大于等于并发数
             concurrencyLevel = MAX_SEGMENTS;
 
         // Find power-of-two sizes best matching arguments
         int sshift = 0;
         int ssize = 1;
-        while (ssize < concurrencyLevel) {
+        while (ssize < concurrencyLevel) {  //找到最接近的2的次方数ssize 作为Segment数
             ++sshift;
             ssize <<= 1;
         }
         segmentShift = 32 - sshift;
         segmentMask = ssize - 1;
-        this.segments = new Segment[ssize];
+        this.segments = new Segment[ssize];     //Segment数组的长度也必须是2的次方数
 
-        if (initialCapacity > MAXIMUM_CAPACITY)
+        if (initialCapacity > MAXIMUM_CAPACITY)     //限制最大容量
             initialCapacity = MAXIMUM_CAPACITY;
-        int c = initialCapacity / ssize;
+        int c = initialCapacity / ssize;        //初始容量 除 Segment数 = 每个Segment初始容量
         if (c * ssize < initialCapacity)
             ++c;
         int cap = 1;
         while (cap < c)
-            cap <<= 1;
+            cap <<= 1;  //因为每个Segment的容量也要是2的次防暑
 
         for (int i = 0; i < this.segments.length; ++i)
-            this.segments[i] = new Segment<K,V>(cap, loadFactor);
+            this.segments[i] = new Segment<K,V>(cap, loadFactor);   //创建Segment; 所以这样看来预计的并发线程数还是要根据实际情况来设置的;
     }
 
     /**
@@ -622,7 +621,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * load factor, and concurrencyLevel.
      */
     public ConcurrentHashMap() {
-        this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR, DEFAULT_SEGMENTS);
+        this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR, DEFAULT_SEGMENTS);  //默认16, 0.75, 16
     }
 
     /**
@@ -643,7 +642,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
     public boolean isEmpty() {
         final Segment[] segments = this.segments;
         /*
-         * We keep track of per-segment modCounts to avoid ABA
+         * We keep track of per-segment modCounts to avoid ABA          //ABA问题
          * problems in which an element in one segment was added and
          * in another removed during traversal, in which case the
          * table was never actually empty at any point. Note the
@@ -657,7 +656,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             if (segments[i].count != 0)
                 return false;
             else 
-                mcsum += mc[i] = segments[i].modCount;
+                mcsum += mc[i] = segments[i].modCount;  //modCount防止ABA问题
         }
         // If mcsum happens to be zero, then we know we got a snapshot
         // before any modifications at all were made.  This is
@@ -680,6 +679,10 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         int[] mc = new int[segments.length];
         // Try a few times to get accurate count. On failure due to
         // continuous async changes in table, resort to locking.
+        /**
+         * 因为全局锁的代价比较高,可以先尝试不加锁,获取大小
+         * 先通过尝试2次不通过锁住segment的方法获取每个大小，如果在统计过程中，count发生变化了，那么再通过加锁的方式进行统计
+         */
         for (int k = 0; k < RETRIES_BEFORE_LOCK; ++k) {
             check = 0;
             sum = 0;
@@ -702,11 +705,11 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
         }
         if (check != sum) { // Resort to locking all segments
             sum = 0;
-            for (int i = 0; i < segments.length; ++i) 
+            for (int i = 0; i < segments.length; ++i) //Segment都加上锁
                 segments[i].lock();
-            for (int i = 0; i < segments.length; ++i) 
+            for (int i = 0; i < segments.length; ++i) //统计总数; 由此来看size()方法是线程安全的;并且能获取到准确的结果
                 sum += segments[i].count;
-            for (int i = 0; i < segments.length; ++i) 
+            for (int i = 0; i < segments.length; ++i) //解锁
                 segments[i].unlock();
         }
         if (sum > Integer.MAX_VALUE)
@@ -728,7 +731,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      */
     public V get(Object key) {
         int hash = hash(key); // throws NullPointerException if key null
-        return segmentFor(hash).get(key, hash);
+        return segmentFor(hash).get(key, hash);         //get方法,先通过segmentFor找到对应的Segment,再在里面寻找对应的key
     }
 
     /**
@@ -743,7 +746,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      */
     public boolean containsKey(Object key) {
         int hash = hash(key); // throws NullPointerException if key null
-        return segmentFor(hash).containsKey(key, hash);
+        return segmentFor(hash).containsKey(key, hash);     //同上
     }
 
     /**
@@ -780,7 +783,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             if (mcsum != 0) {
                 for (int i = 0; i < segments.length; ++i) {
                     int c = segments[i].count;
-                    if (mc[i] != segments[i].modCount) {
+                    if (mc[i] != segments[i].modCount) {    //判断在遍历期间,有没有做修改,重试两次如果还有修改,就加锁再遍历
                         cleanSweep = false;
                         break;
                     }
@@ -990,7 +993,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * <tt>Set.remove</tt>, <tt>removeAll</tt>, <tt>retainAll</tt>, and
      * <tt>clear</tt> operations.  It does not support the <tt>add</tt> or
      * <tt>addAll</tt> operations.
-     * The view's returned <tt>iterator</tt> is a "weakly consistent" iterator that
+     * The view's returned <tt>iterator</tt> is a "weakly consistent" iterator that     //弱一致性
      * will never throw {@link java.util.ConcurrentModificationException},
      * and guarantees to traverse elements as they existed upon
      * construction of the iterator, and may (but is not guaranteed to)
@@ -1000,7 +1003,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      */
     public Set<K> keySet() {
         Set<K> ks = keySet;
-        return (ks != null) ? ks : (keySet = new KeySet());
+        return (ks != null) ? ks : (keySet = new KeySet());     //keySet用于缓存KeySet()的结果
     }
 
 
@@ -1071,36 +1074,36 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 
     /* ---------------- Iterator Support -------------- */
 
-    abstract class HashIterator {
-        int nextSegmentIndex;
-        int nextTableIndex;
-        HashEntry[] currentTable;
-        HashEntry<K, V> nextEntry;
-        HashEntry<K, V> lastReturned;
+    abstract class HashIterator {   // 用于遍历 ConcurrentMap
+        int nextSegmentIndex;       //下个Segment index
+        int nextTableIndex;         //下个table index
+        HashEntry[] currentTable;   //当前table, 是一个entry数组
+        HashEntry<K, V> nextEntry;  //下一个entry
+        HashEntry<K, V> lastReturned;   //上一个返回的entry
 
         HashIterator() {
-            nextSegmentIndex = segments.length - 1;
-            nextTableIndex = -1;
-            advance();
+            nextSegmentIndex = segments.length - 1;     //初始化nextSegmentIndex = length - 1, 从最后一个Segment开始遍历
+            nextTableIndex = -1;                        //下一个 table index
+            advance();  //推进一步
         }
 
         public boolean hasMoreElements() { return hasNext(); }
 
-        final void advance() {
-            if (nextEntry != null && (nextEntry = nextEntry.next) != null)
+        final void advance() {  //往前推进
+            if (nextEntry != null && (nextEntry = nextEntry.next) != null)  //如果nextEntry 或者 nextEntry.next为空就退出, 否则nextEntry指向下一个entry; 第一次进这个方法nextEntry==null
                 return;
 
-            while (nextTableIndex >= 0) {
+            while (nextTableIndex >= 0) {   //第一次进来nextTableIndex为-1
                 if ( (nextEntry = (HashEntry<K,V>)currentTable[nextTableIndex--]) != null)
                     return;
             }
 
-            while (nextSegmentIndex >= 0) {
-                Segment<K,V> seg = (Segment<K,V>)segments[nextSegmentIndex--];
+            while (nextSegmentIndex >= 0) {     //第一次进来到这里
+                Segment<K,V> seg = (Segment<K,V>)segments[nextSegmentIndex--];  //获取当前的Segment,并把索引减一
                 if (seg.count != 0) {
-                    currentTable = seg.table;
-                    for (int j = currentTable.length - 1; j >= 0; --j) {
-                        if ( (nextEntry = (HashEntry<K,V>)currentTable[j]) != null) {
+                    currentTable = seg.table;   //当前currentTable 指向 当前的Segment
+                    for (int j = currentTable.length - 1; j >= 0; --j) {    //倒序遍历当前的Segment
+                        if ( (nextEntry = (HashEntry<K,V>)currentTable[j]) != null) {   //找到第一个不为空的entry
                             nextTableIndex = j - 1;
                             return;
                         }
@@ -1119,14 +1122,15 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             return lastReturned;
         }
 
-        public void remove() {
+        public void remove() {  //遍历的时候支持remove操作
             if (lastReturned == null)
                 throw new IllegalStateException();
-            ConcurrentHashMap.this.remove(lastReturned.key);
+            ConcurrentHashMap.this.remove(lastReturned.key);    //标明是ConcurrentHashMap this对象的remove方法,内部类需要指明是外部依赖对象的方法(直接this.指的就是内部类自己的方法了)
             lastReturned = null;
         }
     }
 
+    // ConcurrentHashMap里的iterator是为单线程遍历设计的，即不可以传递它们，每一个线程都必须有自己的iterator
     final class KeyIterator extends HashIterator implements Iterator<K>, Enumeration<K> {
         public K next() { return super.nextEntry().key; }
         public K nextElement() { return super.nextEntry().key; }
@@ -1221,7 +1225,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
             ConcurrentHashMap.this.clear();
         }
         public Object[] toArray() {
-            Collection<K> c = new ArrayList<K>();
+            Collection<K> c = new ArrayList<K>();   //是新增一个array,然后拷贝进去
             for (Iterator<K> i = iterator(); i.hasNext(); )
                 c.add(i.next());
             return c.toArray();
@@ -1305,7 +1309,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * This duplicates java.util.AbstractMap.SimpleEntry until this class
      * is made accessible.
      */
-    static final class SimpleEntry<K,V> implements Entry<K,V> {
+    static final class SimpleEntry<K,V> implements Entry<K,V> {     //这个类在AbstractMap.SimpleEntry里面也有,在后续的Jdk版本已经public化了
         K key;
         V value;
 
@@ -1366,7 +1370,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
      * for each key-value mapping, followed by a null pair.
      * The key-value mappings are emitted in no particular order.
      */
-    private void writeObject(java.io.ObjectOutputStream s) throws IOException  {
+    private void writeObject(java.io.ObjectOutputStream s) throws IOException  {    //和下面的readObject相对应的,写入的Stream就是为了给readObject读取的
         s.defaultWriteObject();
 
         for (int k = 0; k < segments.length; ++k) {

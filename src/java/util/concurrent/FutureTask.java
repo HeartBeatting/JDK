@@ -14,9 +14,9 @@ import java.util.concurrent.locks.*;
  * implementation of {@link Future}, with methods to start and cancel
  * a computation, query to see if the computation is complete, and
  * retrieve the result of the computation.  The result can only be
- * retrieved when the computation has completed; the <tt>get</tt>
+ * retrieved when the computation has completed; the <tt>get</tt>       //get方法会一直阻塞到任务有结果了
  * method will block if the computation has not yet completed.  Once
- * the computation has completed, the computation cannot be restarted
+ * the computation has completed, the computation cannot be restarted   //任务结束了,就不能重启或者取消了
  * or cancelled.
  * <p/>
  * <p>A <tt>FutureTask</tt> can be used to wrap a {@link Callable} or
@@ -48,7 +48,7 @@ public class FutureTask<V> implements Future<V>, Runnable {
     public FutureTask(Callable<V> callable) {
         if (callable == null)
             throw new NullPointerException();
-        sync = new Sync(callable);
+        sync = new Sync(callable);  //设置回调方法
     }
 
     /**
@@ -126,7 +126,7 @@ public class FutureTask<V> implements Future<V>, Runnable {
      * it has been cancelled.
      */
     public void run() {
-        sync.innerRun();
+        sync.innerRun();    //调用sync的run方法
     }
 
     /**
@@ -217,7 +217,7 @@ public class FutureTask<V> implements Future<V>, Runnable {
         }
 
         V innerGet() throws InterruptedException, ExecutionException {
-            acquireSharedInterruptibly(0);
+            acquireSharedInterruptibly(0);  //获取共享锁,还没有结果时会阻塞
             if (getState() == CANCELLED)
                 throw new CancellationException();
             if (exception != null)
@@ -226,7 +226,7 @@ public class FutureTask<V> implements Future<V>, Runnable {
         }
 
         V innerGet(long nanosTimeout) throws InterruptedException, ExecutionException, TimeoutException {
-            if (!tryAcquireSharedNanos(0, nanosTimeout))
+            if (!tryAcquireSharedNanos(0, nanosTimeout))    //获取共享锁,还没有结果时会阻塞,有超时时间
                 throw new TimeoutException();
             if (getState() == CANCELLED)
                 throw new CancellationException();
@@ -244,9 +244,14 @@ public class FutureTask<V> implements Future<V>, Runnable {
                     break;
             }
             result = v;
-            releaseShared(0);
+            releaseShared(0);   // 给线程一个许可,等待获取任务结果的线程就会被唤醒;
             done();
         }
+
+        /*
+         * 任务还没结束,等待获取任务结果的线程会被挂起,挂起的线程不占cpu,会释放当前占有的锁
+         * sleep是阻塞,仍然会占有对象的锁.
+         */
 
         void innerSetException(Throwable t) {
             for (; ; ) {
@@ -285,7 +290,7 @@ public class FutureTask<V> implements Future<V>, Runnable {
                 return;
             try {
                 runner = Thread.currentThread();
-                innerSet(callable.call());
+                innerSet(callable.call());  //设置callable的回调结果
             } catch (Throwable ex) {
                 innerSetException(ex);
             }

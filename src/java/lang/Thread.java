@@ -770,7 +770,7 @@ public class Thread implements Runnable {
      * of this thread is invoked, which may cause a {@link
      * SecurityException} to be thrown.
      * <p/>
-     * <p> If this thread is blocked in an invocation of the {@link
+     * <p> If this thread is blocked in an invocation of the {@link             //所谓的中断就是设置个标记,当被这些方法阻塞时,如果响应中断会抛出InterruptedException
      * Object#wait() wait()}, {@link Object#wait(long) wait(long)}, or {@link
      * Object#wait(long, int) wait(long, int)} methods of the {@link Object}
      * class, or of the {@link #join()}, {@link #join(long)}, {@link
@@ -790,8 +790,10 @@ public class Thread implements Runnable {
      * value, just as if the selector's {@link
      * java.nio.channels.Selector#wakeup wakeup} method were invoked.
      * <p/>
-     * <p> If none of the previous conditions hold then this thread's interrupt
+     * <p> If none of the previous conditions hold then this thread's interrupt     //如果没有上面的阻塞情况,中断标记会被打上;只要一调用Sleep等,就会抛出异常
      * status will be set. </p>
+     *
+     * <p> Interrupting a thread that is not alive need not have any effect.        //线程没有start,interrupt方法没有反应的
      *
      * @throws SecurityException if the current thread cannot modify this thread
      * @revised 1.4
@@ -809,7 +811,7 @@ public class Thread implements Runnable {
                 return;
             }
         }
-        interrupt0();
+        interrupt0();   //所谓的中断就是设置个标记
     }
 
     /**
