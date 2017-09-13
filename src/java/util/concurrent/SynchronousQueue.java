@@ -100,7 +100,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      */
     public SynchronousQueue(boolean fair) {
         if (fair) {
-            qlock = new ReentrantLock(true);
+            qlock = new ReentrantLock(true);        //公平性是依赖可重入锁的公平机制的
             waitingProducers = new FifoWaitQueue();
             waitingConsumers = new FifoWaitQueue();
         }
@@ -140,7 +140,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
             return p;
         }
 
-        Node deq() {
+        Node deq() {    //出队
             Node p = head;
             if (p != null) {
                 if ((head = p.next) == null)
@@ -199,14 +199,14 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
          * Implements AQS base acquire to succeed if not in WAITING state
          */
         protected boolean tryAcquire(int ignore) {
-            return getState() != 0;
+            return getState() != 0;     //不为0,则获取成功
         }
 
         /**
          * Implements AQS base release to signal if state changed
          */
         protected boolean tryRelease(int newState) {
-            return compareAndSetState(0, newState);
+            return compareAndSetState(0, newState);     //将状态0,改成新的状态 (比如put等待take;或者take等待put)
         }
 
         /**
@@ -317,20 +317,20 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
             try {
                 node = waitingConsumers.deq();
                 if ( (mustWait = (node == null)) )
-                    node = waitingProducers.enq(o);
+                    node = waitingProducers.enq(o); //没有等待的node,进入put的等待队列
             } finally {
                 qlock.unlock();
             }
 
-            if (mustWait) {
-                node.waitForTake();
+            if (mustWait) {     //放进去才需要等待
+                node.waitForTake();     //等待消费者线程来获取; 实际是利用AQS的共享锁, 一般来说阻塞动作或者超时阻塞都通过AQS来实现的.
                 return;
             }
 
-            else if (node.setItem(o))
+            else if (node.setItem(o))   //mustWait 为 false,表示有等待的线程, 放进队列, 唤醒, 等待的take线程.
                 return;
 
-            // else consumer cancelled, so retry
+            // else consumer cancelled, so retry    这种情况表示 consumer取消了,继续重试
         }
     }
 
