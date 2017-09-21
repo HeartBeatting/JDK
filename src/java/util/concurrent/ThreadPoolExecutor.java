@@ -1475,7 +1475,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             if (!e.isShutdown()) {
-                r.run();
+                r.run();    //这里就是依赖客户端线程执行run
             }
         }
     }
