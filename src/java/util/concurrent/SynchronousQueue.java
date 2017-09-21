@@ -83,7 +83,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     implements BlockingQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -3223113410248163686L;
 
-    /*
+    /*  SynchronousQueue jdk 1.6 是基于链表和自旋+LockSupport实现的,当锁的粒度比较小并且很频繁时比较适合使用
      * This class implements extensions of the dual stack and dual
      * queue algorithms described in "Nonblocking Concurrent Objects
      * with Condition Synchronization", by W. N. Scherer III and
@@ -197,7 +197,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * This is greater than timed value because untimed waits spin
      * faster since they don't need to check times on each spin.
      */
-    static final int maxUntimedSpins = maxTimedSpins * 16;
+    static final int maxUntimedSpins = maxTimedSpins * 16;  //32 x 16 = 512
 
     /**
      * The number of nanoseconds for which it is faster to spin
@@ -215,12 +215,12 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
          * to match a waiting node.
          */
 
-        /* Modes for SNodes, ORed together in node fields */
-        /** Node represents an unfulfilled consumer */
+        /* Modes for SNodes, ORed together in node fields */    //node不同的模式
+        /** Node represents an unfulfilled consumer */  //未履行的消费者
         static final int REQUEST    = 0;
-        /** Node represents an unfulfilled producer */
+        /** Node represents an unfulfilled producer */  //未履行的生产者
         static final int DATA       = 1;
-        /** Node is fulfilling another unfulfilled DATA or REQUEST */
+        /** Node is fulfilling another unfulfilled DATA or REQUEST */   //正在履行的生产者或者消费者
         static final int FULFILLING = 2;
 
         /** Return true if m has fulfilling bit set */
@@ -243,7 +243,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 
             boolean casNext(SNode cmp, SNode val) {
                 return cmp == next &&
-                    UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+                    UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);    //第一个this 可以理解为首地址，第二long可以理解为偏移地址，第三个参数是当前线程期望的内部域的值，最后一个参数是希望变成的值。
             }
 
             /**
@@ -260,7 +260,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
                     Thread w = waiter;
                     if (w != null) {    // waiters need at most one unpark
                         waiter = null;
-                        LockSupport.unpark(w);
+                        LockSupport.unpark(w);  //匹配成功唤醒线程
                     }
                     return true;
                 }
@@ -320,7 +320,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         }
 
         /**
-         * Puts or takes an item.
+         * Puts or takes an item.   放或取
          */
         Object transfer(Object e, boolean timed, long nanos) {
             /*
@@ -344,20 +344,20 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
              *    that it doesn't return the item.
              */
 
-            SNode s = null; // constructed/reused as needed
-            int mode = (e == null) ? REQUEST : DATA;
+            SNode s = null; // constructed/reused as needed     构造或者重复使用它
+            int mode = (e == null) ? REQUEST : DATA;    // e为空代表是未履行的消费者? 生产者e不为空的
 
-            for (;;) {
-                SNode h = head;
-                if (h == null || h.mode == mode) {  // empty or same-mode
-                    if (timed && nanos <= 0) {      // can't wait
-                        if (h != null && h.isCancelled())
-                            casHead(h, h.next);     // pop cancelled node
+            for (;;) {  //循环重试
+                SNode h = head;     // h指向头结点
+                if (h == null || h.mode == mode) {  // empty or same-mode   如果头结点为空,也就是链表为空 或 是同样mode
+                    if (timed && nanos <= 0) {      // can't wait   如果不等待
+                        if (h != null && h.isCancelled())   //如果这头节点不为空(是因为h.mode == mode进来的), 并且头节点是被取消的.这个是用于忽略取消节点的
+                            casHead(h, h.next);     // pop cancelled node   并且头结点替换为头结点的下一个, 本次循环结束, 继续下次循环
                         else
-                            return null;
-                    } else if (casHead(h, s = snode(s, e, h, mode))) {
+                            return null;    //如果头结点为空,则返回null?
+                    } else if (casHead(h, s = snode(s, e, h, mode))) {  //尝试CAS设置 当前节点e 为栈顶节点; 设置失败了就是自旋重试;
                         SNode m = awaitFulfill(s, timed, nanos);
-                        if (m == s) {               // wait was cancelled
+                        if (m == s) {               // wait was cancelled   等于自身表示取消了
                             clean(s);
                             return null;
                         }
@@ -377,14 +377,14 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
                                 break;              // restart main loop
                             }
                             SNode mn = m.next;
-                            if (m.tryMatch(s)) {
+                            if (m.tryMatch(s)) {    //一直尝试匹配
                                 casHead(s, mn);     // pop both s and m
                                 return (mode == REQUEST) ? m.item : s.item;
                             } else                  // lost match
                                 s.casNext(m, mn);   // help unlink
                         }
                     }
-                } else {                            // help a fulfiller
+                } else {                            // help a fulfiller     辅助方法
                     SNode m = h.next;               // m is h's match
                     if (m == null)                  // waiter is gone
                         casHead(h, null);           // pop fulfilling node
@@ -400,7 +400,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         }
 
         /**
-         * Spins/blocks until node s is matched by a fulfill operation.
+         * Spins/blocks until node s is matched by a fulfill operation.     自旋转或者阻塞,直到被匹配
          *
          * @param s the waiting node
          * @param timed true if timed wait
@@ -437,27 +437,27 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
                          (timed ? maxTimedSpins : maxUntimedSpins) : 0);
             for (;;) {
                 if (w.isInterrupted())
-                    s.tryCancel();
+                    s.tryCancel();  //尝试取消
                 SNode m = s.match;
                 if (m != null)
-                    return m;
-                if (timed) {
+                    return m;   //不为空,代表匹配成功,直接返回
+                if (timed) {    //如果为true,需要计算时间
                     long now = System.nanoTime();
                     nanos -= now - lastTime;
                     lastTime = now;
                     if (nanos <= 0) {
-                        s.tryCancel();
+                        s.tryCancel();  //为什么会取消,因为等待的时间到了,要做到可以超时
                         continue;
                     }
                 }
-                if (spins > 0)
-                    spins = shouldSpin(s) ? (spins-1) : 0;
-                else if (s.waiter == null)
+                if (spins > 0)  //按次数循环
+                    spins = shouldSpin(s) ? (spins-1) : 0;  //不停的循环,直到成功匹配或者次数用完
+                else if (s.waiter == null)  //循环次数为0了
                     s.waiter = w; // establish waiter so can park next iter
-                else if (!timed)
+                else if (!timed)    //如果不等待,则直接阻塞
                     LockSupport.park(this);
-                else if (nanos > spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanos);
+                else if (nanos > spinForTimeoutThreshold)   //如果阻塞时间大于spinForTimeoutThreshold,则自旋不划算;   其次对于设定了时间限和设时间限自旋是不一样的，如果没有设定时间限，则进行少量的自旋，也就是16次自旋。如果设定了时间限，怎根据自旋限的大小来进行判断，如果自旋时间小于时间限的阈值spinForTimeoutThreshold，即1000，则自旋16*32=512次（当cpu次数小于2）。如果设定的时间大于1000则进行待时限的阻塞。
+                    LockSupport.parkNanos(this, nanos);     //阻塞线程相应的时间,但是唤醒以后会继续参与for循环
             }
         }
 
@@ -863,7 +863,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *        access; otherwise the order is unspecified.
      */
     public SynchronousQueue(boolean fair) {
-        transferer = fair ? new TransferQueue() : new TransferStack();
+        transferer = fair ? new TransferQueue() : new TransferStack();  //TransferQueue公平的,TransferStack非公平
     }
 
     /**

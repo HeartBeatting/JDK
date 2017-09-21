@@ -60,16 +60,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  *     }
  * }
  * </pre>
- * <p>Each thread holds an implicit reference to its copy of a thread-local
+ * <p>Each thread holds an implicit reference to its copy of a thread-local     //只要线程是存活的,每个线程隐式持有对thread-local引用
  * variable as long as the thread is alive and the <tt>ThreadLocal</tt>
- * instance is accessible; after a thread goes away, all of its copies of
+ * instance is accessible; after a thread goes away, all of its copies of       //线程回收了,他的thread-local会被垃圾回收
  * thread-local instances are subject to garbage collection (unless other
  * references to these copies exist).
  *
  * @author  Josh Bloch and Doug Lea
  * @since   1.2
- */
-public class ThreadLocal<T> {
+ */ //ThreadLocal是解决线程安全问题一个很好的思路，它通过为每个线程提供一个独立的变量副本解决了变量并发访问的冲突问题
+public class ThreadLocal<T> {   //
     /**
      * ThreadLocals rely on per-thread linear-probe hash maps attached
      * to each thread (Thread.threadLocals and
@@ -141,13 +141,13 @@ public class ThreadLocal<T> {
      */
     public T get() {
         Thread t = Thread.currentThread();
-        ThreadLocalMap map = getMap(t);
+        ThreadLocalMap map = getMap(t);     //获取当前线程 绑定的 ThreadLocalMap
         if (map != null) {
-            ThreadLocalMap.Entry e = map.getEntry(this);
+            ThreadLocalMap.Entry e = map.getEntry(this);    //以ThreadLocal为key,找到entry
             if (e != null)
                 return (T)e.value;
         }
-        return setInitialValue();
+        return setInitialValue();   //没有就初始化
     }
 
     /**
@@ -163,7 +163,7 @@ public class ThreadLocal<T> {
         if (map != null)
             map.set(this, value);
         else
-            createMap(t, value);
+            createMap(t, value);    //初始化当前线程的 t.threadLocals
         return value;
     }
 
@@ -196,7 +196,7 @@ public class ThreadLocal<T> {
      *
      * @since 1.5
      */
-     public void remove() {
+     public void remove() {     //显示的删除当前 ThreadLocal为key的
          ThreadLocalMap m = getMap(Thread.currentThread());
          if (m != null)
              m.remove(this);
@@ -253,22 +253,22 @@ public class ThreadLocal<T> {
      * maintaining thread local values. No operations are exported
      * outside of the ThreadLocal class. The class is package private to
      * allow declaration of fields in class Thread.  To help deal with
-     * very large and long-lived usages, the hash table entries use
+     * very large and long-lived usages, the hash table entries use         //为了处理庞大并且长期存活对象, 用WeakReferences作为key
      * WeakReferences for keys. However, since reference queues are not
      * used, stale entries are guaranteed to be removed only when
-     * the table starts running out of space.
+     * the table starts running out of space.   //没有空间了
      */
     static class ThreadLocalMap {
 
         /**
          * The entries in this hash map extend WeakReference, using
-         * its main ref field as the key (which is always a
-         * ThreadLocal object).  Note that null keys (i.e. entry.get()
-         * == null) mean that the key is no longer referenced, so the
+         * its main ref field as the key (which is always a                     //把ThreadLocal k作为main ref field
+         * ThreadLocal object).  Note that null keys (i.e. entry.get()          //一旦k 表示entry再也不会被引用
+         * == null) mean that the key is no longer referenced, so the           // k为null,表示可以被GC
          * entry can be expunged from table.  Such entries are referred to
          * as "stale entries" in the code that follows.
          */
-        static class Entry extends WeakReference<ThreadLocal> {
+        static class Entry extends WeakReference<ThreadLocal> {     //WeakReference 包裹的对象 ThreadLocal k (也就是entry 的 key是弱引用)
             /** The value associated with this ThreadLocal. */
             Object value;
 
@@ -300,7 +300,7 @@ public class ThreadLocal<T> {
         private int threshold; // Default to 0
 
         /**
-         * Set the resize threshold to maintain at worst a 2/3 load factor.
+         * Set the resize threshold to maintain at worst a 2/3 load factor. //达到三分之二就扩容
          */
         private void setThreshold(int len) {
             threshold = len * 2 / 3;
@@ -413,7 +413,7 @@ public class ThreadLocal<T> {
          * @param key the thread local object
          * @param value the value to be set
          */
-        private void set(ThreadLocal key, Object value) {
+        private void set(ThreadLocal key, Object value) {   //ThreadLocalMap是一个订制的map, key 是ThreadLocal本身, 值是 value
 
             // We don't use a fast path as with get() because it is at
             // least as common to use set() to create new entries as
@@ -422,7 +422,7 @@ public class ThreadLocal<T> {
 
             Entry[] tab = table;
             int len = tab.length;
-            int i = key.threadLocalHashCode & (len-1);
+            int i = key.threadLocalHashCode & (len-1);  //找到桶的index
 
             for (Entry e = tab[i];
                  e != null;
@@ -457,7 +457,7 @@ public class ThreadLocal<T> {
                  e != null;
                  e = tab[i = nextIndex(i, len)]) {
                 if (e.get() == key) {
-                    e.clear();
+                    e.clear();  //referent = null, 会被垃圾回收
                     expungeStaleEntry(i);
                     return;
                 }
