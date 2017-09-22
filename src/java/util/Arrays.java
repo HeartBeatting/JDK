@@ -28,8 +28,8 @@ package java.util;
 import java.lang.reflect.*;
 
 /**
- * This class contains various methods for manipulating arrays (such as
- * sorting and searching). This class also contains a static factory
+ * This class contains various methods for manipulating arrays (such as         // 有排序和搜索的方法
+ * sorting and searching). This class also contains a static factory            // 也有List转化的方法
  * that allows arrays to be viewed as lists.
  *
  * <p>The methods in this class all throw a {@code NullPointerException},
@@ -64,11 +64,11 @@ public class Arrays {
     /**
      * Sorts the specified array into ascending numerical order.
      *
-     * <p>Implementation note: The sorting algorithm is a Dual-Pivot Quicksort
+     * <p>Implementation note: The sorting algorithm is a Dual-Pivot Quicksort  // 采用双指针快排
      * by Vladimir Yaroslavskiy, Jon Bentley, and Joshua Bloch. This algorithm
      * offers O(n log(n)) performance on many data sets that cause other
      * quicksorts to degrade to quadratic performance, and is typically
-     * faster than traditional (one-pivot) Quicksort implementations.
+     * faster than traditional (one-pivot) Quicksort implementations.           // 比单指针快排跟快
      *
      * @param a the array to be sorted
      */
@@ -2198,7 +2198,7 @@ public class Arrays {
     // Cloning
 
     /**
-     * Copies the specified array, truncating or padding with nulls (if necessary)
+     * Copies the specified array, truncating or padding with nulls (if necessary)  // 用于数组的拷贝
      * so the copy has the specified length.  For all indices that are
      * valid in both the original array and the copy, the two arrays will
      * contain identical values.  For any indices that are valid in the
@@ -2209,7 +2209,7 @@ public class Arrays {
      *
      * @param original the array to be copied
      * @param newLength the length of the copy to be returned
-     * @return a copy of the original array, truncated or padded with nulls
+     * @return a copy of the original array, truncated or padded with nulls         // 为了达到newLength, 会缩短部分数据或者填充null
      *     to obtain the specified length
      * @throws NegativeArraySizeException if <tt>newLength</tt> is negative
      * @throws NullPointerException if <tt>original</tt> is null
@@ -2243,10 +2243,10 @@ public class Arrays {
      */
     public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
         T[] copy = ((Object)newType == (Object)Object[].class)
-            ? (T[]) new Object[newLength]
-            : (T[]) Array.newInstance(newType.getComponentType(), newLength);
-        System.arraycopy(original, 0, copy, 0,
-                         Math.min(original.length, newLength));
+            ? (T[]) new Object[newLength]                                       // 创建一个object数组
+            : (T[]) Array.newInstance(newType.getComponentType(), newLength);   // 根据Class创建一个数组
+        System.arraycopy(original, 0, copy, 0,        //System.arraycopy()是一个native方法
+                         Math.min(original.length, newLength));     //如果original.length小,肯定都会复制进去; 如果newLength小,那么超出的部分就都不复制了
         return copy;
     }
 
@@ -2267,7 +2267,7 @@ public class Arrays {
      * @throws NullPointerException if <tt>original</tt> is null
      * @since 1.6
      */
-    public static byte[] copyOf(byte[] original, int newLength) {
+    public static byte[] copyOf(byte[] original, int newLength) {   //下面的方法都是差不多的
         byte[] copy = new byte[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -2809,13 +2809,13 @@ public class Arrays {
 
     /**
      * Returns a fixed-size list backed by the specified array.  (Changes to
-     * the returned list "write through" to the array.)  This method acts
+     * the returned list "write through" to the array.)  This method acts       // 自定义的ArrayList,其实是个桥接,操作都会穿透到数组
      * as bridge between array-based and collection-based APIs, in
      * combination with {@link Collection#toArray}.  The returned list is
      * serializable and implements {@link RandomAccess}.
      *
      * <p>This method also provides a convenient way to create a fixed-size
-     * list initialized to contain several elements:
+     * list initialized to contain several elements:    // List<String> stooges = Arrays.asList("Larry", "Moe", "Curly"); 这样方便创建List
      * <pre>
      *     List&lt;String&gt; stooges = Arrays.asList("Larry", "Moe", "Curly");
      * </pre>
@@ -2851,13 +2851,13 @@ public class Arrays {
             return a.clone();
         }
 
-        public <T> T[] toArray(T[] a) {
-            int size = size();
-            if (a.length < size)
-                return Arrays.copyOf(this.a, size,
+        public <T> T[] toArray(T[] a) {     // ArrayList转化为T[]数组
+            int size = size();              // 当前ArrayList长度 = 当前数组长度
+            if (a.length < size)            // a.length < size, 直接把当前数组拷贝一份返回
+                return Arrays.copyOf(this.a, size,  // Array.copyOf相当于再拷贝一份数组并返回,返回的不是原来的数组引用
                                      (Class<? extends T[]>) a.getClass());
-            System.arraycopy(this.a, 0, a, 0, size);
-            if (a.length > size)
+            System.arraycopy(this.a, 0, a, 0, size);    //把this.a ==> a里, 只copy size大小
+            if (a.length > size)            // 如果a长度大于size, a[size]赋值null.
                 a[size] = null;
             return a;
         }
@@ -2906,7 +2906,7 @@ public class Arrays {
      * @return a content-based hash code for <tt>a</tt>
      * @since 1.5
      */
-    public static int hashCode(long a[]) {
+    public static int hashCode(long a[]) {      //下面的都是计算数组的hashcode()方法
         if (a == null)
             return 0;
 
@@ -3171,7 +3171,7 @@ public class Arrays {
      * @see #hashCode(Object[])
      * @since 1.5
      */
-    public static int deepHashCode(Object a[]) {
+    public static int deepHashCode(Object a[]) {    //会根据具体的类型,计算hashcode
         if (a == null)
             return 0;
 
@@ -3241,13 +3241,13 @@ public class Arrays {
      * @see Objects#deepEquals(Object, Object)
      * @since 1.5
      */
-    public static boolean deepEquals(Object[] a1, Object[] a2) {
+    public static boolean deepEquals(Object[] a1, Object[] a2) {    //工具类,用来判断两个数组是否相等的
         if (a1 == a2)
             return true;
         if (a1 == null || a2==null)
             return false;
         int length = a1.length;
-        if (a2.length != length)
+        if (a2.length != length)    // 长度不等的直接返回false,加快速度
             return false;
 
         for (int i = 0; i < length; i++) {
@@ -3307,7 +3307,7 @@ public class Arrays {
      * @return a string representation of <tt>a</tt>
      * @since 1.5
      */
-    public static String toString(long[] a) {
+    public static String toString(long[] a) {   //可以避免空指针异常的toString工具类
         if (a == null)
             return "null";
         int iMax = a.length - 1;

@@ -26,7 +26,7 @@
 package java.lang.reflect;
 
 /**
- * The {@code Array} class provides static methods to dynamically create and
+ * The {@code Array} class provides static methods to dynamically create and    // Array都是提供静态方法,动态创建数组或者操作数组Array
  * access Java arrays.
  *
  * <p>{@code Array} permits widening conversions to occur during a get or set
@@ -39,7 +39,7 @@ public final
 class Array {
 
     /**
-     * Constructor.  Class Array is not instantiable.
+     * Constructor.  Class Array is not instantiable.   Array不可实例化
      */
     private Array() {}
 
@@ -67,7 +67,7 @@ class Array {
      */
     public static Object newInstance(Class<?> componentType, int length)
         throws NegativeArraySizeException {
-        return newArray(componentType, length);
+        return newArray(componentType, length);     //根据componentType,动态创建数组
     }
 
     /**
@@ -105,7 +105,7 @@ class Array {
      */
     public static Object newInstance(Class<?> componentType, int... dimensions)
         throws IllegalArgumentException, NegativeArraySizeException {
-        return multiNewArray(componentType, dimensions);
+        return multiNewArray(componentType, dimensions);    //创建多个数组
     }
 
     /**
@@ -116,7 +116,7 @@ class Array {
      * @exception IllegalArgumentException if the object argument is not
      * an array
      */
-    public static native int getLength(Object array)
+    public static native int getLength(Object array)    //获取array的长度,也是一个static 和 native方法
         throws IllegalArgumentException;
 
     /**
@@ -126,7 +126,7 @@ class Array {
      *
      * @param array the array
      * @param index the index
-     * @return the (possibly wrapped) value of the indexed component in
+     * @return the (possibly wrapped) value of the indexed component in     // 也是用反射的方法获取数组中某个位置的元素
      * the specified array
      * @exception NullPointerException If the specified object is null
      * @exception IllegalArgumentException If the specified object is not
@@ -154,7 +154,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native boolean getBoolean(Object array, int index)
+    public static native boolean getBoolean(Object array, int index)        // 获取并转换成boolean
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -173,7 +173,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native byte getByte(Object array, int index)
+    public static native byte getByte(Object array, int index)      //获取byte
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -192,7 +192,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native char getChar(Object array, int index)
+    public static native char getChar(Object array, int index)      //获取char
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -211,7 +211,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native short getShort(Object array, int index)
+    public static native short getShort(Object array, int index)            //获取shot
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -230,7 +230,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native int getInt(Object array, int index)
+    public static native int getInt(Object array, int index)            //获取int
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -249,7 +249,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native long getLong(Object array, int index)
+    public static native long getLong(Object array, int index)          //获取Long
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -268,7 +268,7 @@ class Array {
      * length of the specified array
      * @see Array#get
      */
-    public static native float getFloat(Object array, int index)
+    public static native float getFloat(Object array, int index)            //获取Float
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
     /**
@@ -301,7 +301,7 @@ class Array {
      * @exception NullPointerException If the specified object argument
      * is null
      * @exception IllegalArgumentException If the specified object argument
-     * is not an array, or if the array component type is primitive and
+     * is not an array, or if the array component type is primitive and         //类型不符合
      * an unwrapping conversion fails
      * @exception ArrayIndexOutOfBoundsException If the specified {@code index}
      * argument is negative, or if it is greater than or equal to
@@ -474,7 +474,7 @@ class Array {
      * Private
      */
 
-    private static native Object newArray(Class componentType, int length)
+    private static native Object newArray(Class componentType, int length)      // native方法
         throws NegativeArraySizeException;
 
     private static native Object multiNewArray(Class componentType,

@@ -782,9 +782,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             for (Worker w : workers) {
                 Thread t = w.thread;
-                if (!t.isInterrupted() && w.tryLock()) {
+                if (!t.isInterrupted() && w.tryLock()) {    //如果线程t没有中断,就尝试获取当前worker的锁.所以这边锁也只是锁一个Worker线程.
                     try {
-                        t.interrupt();
+                        t.interrupt();                      //获取到了锁,再中断线程.
                     } catch (SecurityException ignore) {
                     } finally {
                         w.unlock();
@@ -1542,8 +1542,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             throw new IllegalArgumentException();
         int delta = corePoolSize - this.corePoolSize;
         this.corePoolSize = corePoolSize;
-        if (workerCountOf(ctl.get()) > corePoolSize)
-            interruptIdleWorkers();
+        if (workerCountOf(ctl.get()) > corePoolSize)    //正在运行的线程大于待设置的核心线程,所以需要中断线程.
+            interruptIdleWorkers();                     //中断变成空闲的线程
         else if (delta > 0) {
             // We don't really know how many new threads are "needed".
             // As a heuristic, prestart enough new workers (up to new

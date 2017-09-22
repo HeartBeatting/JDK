@@ -26,7 +26,7 @@
 package java.util;
 
 /**
- * This class provides a skeletal implementation of the <tt>Collection</tt>
+ * This class provides a skeletal implementation of the <tt>Collection</tt>         //骨架实现
  * interface, to minimize the effort required to implement this interface. <p>
  *
  * To implement an unmodifiable collection, the programmer needs only to
@@ -57,8 +57,8 @@ package java.util;
  * @see Collection
  * @since 1.2
  */
-
-public abstract class AbstractCollection<E> implements Collection<E> {
+// 所有的集合基本上都不是直接实现Collection的,都是继承AbstractCollection; Collection这种各个类之间的关系和设计值得借鉴.
+public abstract class AbstractCollection<E> implements Collection<E> {  //AbstractCollection 提供了默认实现以及一些公共的方法.
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically
      * implicit.)
@@ -99,7 +99,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         Iterator<E> it = iterator();
         if (o==null) {
             while (it.hasNext())
-                if (it.next()==null)
+                if (it.next()==null)    //contains对null也生效.
                     return true;
         } else {
             while (it.hasNext())
@@ -140,7 +140,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
                 return Arrays.copyOf(r, i);
             r[i] = it.next();
         }
-        return it.hasNext() ? finishToArray(r, it) : r;
+        return it.hasNext() ? finishToArray(r, it) : r;     //finishToArray 仍然还有下一个
     }
 
     /**
@@ -220,24 +220,24 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         int i = r.length;
         while (it.hasNext()) {
             int cap = r.length;
-            if (i == cap) {
-                int newCap = cap + (cap >> 1) + 1;
+            if (i == cap) {     // 当i==cap时进行扩容
+                int newCap = cap + (cap >> 1) + 1;  // newCap = cap + cap/2 +1-
                 // overflow-conscious code
-                if (newCap - MAX_ARRAY_SIZE > 0)
+                if (newCap - MAX_ARRAY_SIZE > 0)    // 超过最大长度
                     newCap = hugeCapacity(cap + 1);
                 r = Arrays.copyOf(r, newCap);
             }
             r[i++] = (T)it.next();
         }
         // trim if overallocated
-        return (i == r.length) ? r : Arrays.copyOf(r, i);
+        return (i == r.length) ? r : Arrays.copyOf(r, i);   //这个步骤是去除空的数组字段.
     }
 
     private static int hugeCapacity(int minCapacity) {
-        if (minCapacity < 0) // overflow
+        if (minCapacity < 0) // overflow    整形溢出了
             throw new OutOfMemoryError
                 ("Required array size too large");
-        return (minCapacity > MAX_ARRAY_SIZE) ?
+        return (minCapacity > MAX_ARRAY_SIZE) ?     //如果minCapacity不小于0,但是大于MAX_ARRAY_SIZE,表示minCapacity介于MAX_ARRAY_SIZE和Integer.MAX_VALUE之间.
             Integer.MAX_VALUE :
             MAX_ARRAY_SIZE;
     }

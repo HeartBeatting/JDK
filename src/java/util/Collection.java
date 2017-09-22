@@ -84,7 +84,7 @@ package java.util;
  * iterator to examine the collection.
  *
  * <p>Many methods in Collections Framework interfaces are defined in
- * terms of the {@link Object#equals(Object) equals} method.  For example,
+ * terms of the {@link Object#equals(Object) equals} method.  For example,      // 很多集合都是依赖equals方法
  * the specification for the {@link #contains(Object) contains(Object o)}
  * method says: "returns <tt>true</tt> if and only if this collection
  * contains at least one element <tt>e</tt> such that
@@ -129,7 +129,7 @@ public interface Collection<E> extends Iterable<E> {
 
     /**
      * Returns the number of elements in this collection.  If this collection
-     * contains more than <tt>Integer.MAX_VALUE</tt> elements, returns
+     * contains more than <tt>Integer.MAX_VALUE</tt> elements, returns          // 难道Collection大小都没有限制吗
      * <tt>Integer.MAX_VALUE</tt>.
      *
      * @return the number of elements in this collection
@@ -293,7 +293,7 @@ public interface Collection<E> extends Iterable<E> {
     boolean remove(Object o);
 
 
-    // Bulk Operations
+    // Bulk Operations  批量操作
 
     /**
      * Returns <tt>true</tt> if this collection contains all of the elements
@@ -388,7 +388,7 @@ public interface Collection<E> extends Iterable<E> {
      * @see #remove(Object)
      * @see #contains(Object)
      */
-    boolean retainAll(Collection<?> c);
+    boolean retainAll(Collection<?> c);     //retain 保留
 
     /**
      * Removes all of the elements from this collection (optional operation).
@@ -412,12 +412,12 @@ public interface Collection<E> extends Iterable<E> {
      * or a <tt>List</tt>) must exercise care if they choose to override the
      * <tt>Object.equals</tt>.  It is not necessary to do so, and the simplest
      * course of action is to rely on <tt>Object</tt>'s implementation, but
-     * the implementor may wish to implement a "value comparison" in place of
+     * the implementor may wish to implement a "value comparison" in place of       //值比较 和 引用比较
      * the default "reference comparison."  (The <tt>List</tt> and
      * <tt>Set</tt> interfaces mandate such value comparisons.)<p>
      *
      * The general contract for the <tt>Object.equals</tt> method states that
-     * equals must be symmetric (in other words, <tt>a.equals(b)</tt> if and
+     * equals must be symmetric (in other words, <tt>a.equals(b)</tt> if and        //对称性
      * only if <tt>b.equals(a)</tt>).  The contracts for <tt>List.equals</tt>
      * and <tt>Set.equals</tt> state that lists are only equal to other lists,
      * and sets to other sets.  Thus, a custom <tt>equals</tt> method for a
@@ -441,7 +441,7 @@ public interface Collection<E> extends Iterable<E> {
      * Returns the hash code value for this collection.  While the
      * <tt>Collection</tt> interface adds no stipulations to the general
      * contract for the <tt>Object.hashCode</tt> method, programmers should
-     * take note that any class that overrides the <tt>Object.equals</tt>
+     * take note that any class that overrides the <tt>Object.equals</tt>       //覆写了equals()方法,也必须覆写hashCode()方法
      * method must also override the <tt>Object.hashCode</tt> method in order
      * to satisfy the general contract for the <tt>Object.hashCode</tt> method.
      * In particular, <tt>c1.equals(c2)</tt> implies that
