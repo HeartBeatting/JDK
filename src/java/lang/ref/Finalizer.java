@@ -18,7 +18,7 @@ final class Finalizer extends FinalReference { /* Package-private; must be in
     /* A native method that invokes an arbitrary object's finalize method is
        required since the finalize method is protected
      */
-    static native void invokeFinalizeMethod(Object o) throws Throwable;
+    static native void invokeFinalizeMethod(Object o) throws Throwable;		// 这个方法可以调用任意对象的finalize方法
 
     static private ReferenceQueue queue = new ReferenceQueue();
     static private Finalizer unfinalized = null;
@@ -63,30 +63,30 @@ final class Finalizer extends FinalReference { /* Package-private; must be in
     }
 
     private Finalizer(Object finalizee) {
-	super(finalizee, queue);
-	add();
+		super(finalizee, queue);
+		add();
     }
 
     /* Invoked by VM */
     static void register(Object finalizee) {
-	new Finalizer(finalizee);
+		new Finalizer(finalizee);
     }
 
     private void runFinalizer() {
-	synchronized (this) {
-	    if (hasBeenFinalized()) return;
-	    remove();
-	}
-	try {
-	    Object finalizee = this.get();
-	    if (finalizee != null && !(finalizee instanceof java.lang.Enum)) {
-		invokeFinalizeMethod(finalizee);
-		/* Clear stack slot containing this variable, to decrease
-		   the chances of false retention with a conservative GC */
-		finalizee = null;
-	    }
-	} catch (Throwable x) { }
-	super.clear();
+		synchronized (this) {
+			if (hasBeenFinalized()) return;
+			remove();
+		}
+		try {
+			Object finalizee = this.get();
+			if (finalizee != null && !(finalizee instanceof java.lang.Enum)) {		// 枚举类不回收,枚举类就是一种常量类
+			invokeFinalizeMethod(finalizee);	// 这里会调用引用对象的finalize方法
+			/* Clear stack slot containing this variable, to decrease
+			   the chances of false retention with a conservative GC */
+			finalizee = null;
+			}
+		} catch (Throwable x) { }
+		super.clear();
     }
 
     /* Create a privileged secondary finalizer thread in the system thread
@@ -103,35 +103,35 @@ final class Finalizer extends FinalReference { /* Package-private; must be in
        invokers of these methods from a stalled or deadlocked finalizer thread.
      */
     private static void forkSecondaryFinalizer(final Runnable proc) {
-	PrivilegedAction pa = new PrivilegedAction() {
-	    public Object run() {
-		ThreadGroup tg = Thread.currentThread().getThreadGroup();
-		for (ThreadGroup tgn = tg;
-		     tgn != null;
-		     tg = tgn, tgn = tg.getParent());
-		Thread sft = new Thread(tg, proc, "Secondary finalizer");
-		sft.start();
-		try {
-		    sft.join();
-		} catch (InterruptedException x) {
-		    /* Ignore */
-		}
-		return null;
-	    }};
-	AccessController.doPrivileged(pa);
+		PrivilegedAction pa = new PrivilegedAction() {
+			public Object run() {
+			ThreadGroup tg = Thread.currentThread().getThreadGroup();
+			for (ThreadGroup tgn = tg;
+				 tgn != null;
+				 tg = tgn, tgn = tg.getParent());
+			Thread sft = new Thread(tg, proc, "Secondary finalizer");
+			sft.start();
+			try {
+				sft.join();
+			} catch (InterruptedException x) {
+				/* Ignore */
+			}
+			return null;
+			}};
+		AccessController.doPrivileged(pa);
     }
 
     /* Called by Runtime.runFinalization() */
     static void runFinalization() {
-	forkSecondaryFinalizer(new Runnable() {
-	    public void run() {
-		for (;;) {
-		    Finalizer f = (Finalizer)queue.poll();
-		    if (f == null) break;
-		    f.runFinalizer();
-		}
-	    }
-	});
+		forkSecondaryFinalizer(new Runnable() {
+			public void run() {
+			for (;;) {
+				Finalizer f = (Finalizer)queue.poll();
+				if (f == null) break;
+				f.runFinalizer();
+			}
+			}
+		});
     }
 
     /* Invoked by java.lang.Shutdown */

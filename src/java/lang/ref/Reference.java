@@ -12,7 +12,7 @@ import sun.misc.Cleaner;
 
 /**
  * Abstract base class for reference objects.  This class defines the
- * operations common to all reference objects.	Because reference objects are
+ * operations common to all reference objects.	Because reference objects are		// Reference对象是用来帮助GC的
  * implemented in close cooperation with the garbage collector, this class may
  * not be subclassed directly.
  *
@@ -91,7 +91,7 @@ public abstract class Reference<T> {
      * References to this list, while the Reference-handler thread removes
      * them.  This list is protected by the above lock object.
      */
-    private static Reference pending = null;
+    private static Reference pending = null;	// GC会把待收集的References放进来,这是一个全局的static变量
 
     /* High-priority thread to enqueue pending References
      */
@@ -105,44 +105,44 @@ public abstract class Reference<T> {
 	    for (;;) {
 
 		Reference r;
-		synchronized (lock) {
+		synchronized (lock) {   //lock是静态变量, 这里是全局加锁
 		    if (pending != null) {
-			r = pending;
-			Reference rn = r.next;
-			pending = (rn == r) ? null : rn;
-			r.next = r;
+                r = pending;
+                Reference rn = r.next;              // pending是一个链表,next指向下一个
+                pending = (rn == r) ? null : rn;    // pending指向下一个,下次继续操作
+                r.next = r;
 		    } else {
-			try {
-			    lock.wait();
-			} catch (InterruptedException x) { }
-			continue;
+                try {           // 如果pending为null,这里是等待JVM赋值
+                    lock.wait();
+                } catch (InterruptedException x) { }
+                continue;
 		    }
 		}
 
 		// Fast path for cleaners
-		if (r instanceof Cleaner) {
+		if (r instanceof Cleaner) {     // PhantomReference 不需要保留, 直接回收
 		    ((Cleaner)r).clean();
 		    continue;
 		}
 
 		ReferenceQueue q = r.queue;
-		if (q != ReferenceQueue.NULL) q.enqueue(r);
+		if (q != ReferenceQueue.NULL) q.enqueue(r); // 相当于标记好了,进入队列等待GC回收.
 	    }
 	}
     }
 
     static {
-	ThreadGroup tg = Thread.currentThread().getThreadGroup();
-	for (ThreadGroup tgn = tg;
-	     tgn != null;
-	     tg = tgn, tgn = tg.getParent());
-	Thread handler = new ReferenceHandler(tg, "Reference Handler");
-	/* If there were a special system-only priority greater than
-	 * MAX_PRIORITY, it would be used here
-	 */
-	handler.setPriority(Thread.MAX_PRIORITY);
-	handler.setDaemon(true);
-	handler.start();
+        ThreadGroup tg = Thread.currentThread().getThreadGroup();
+        for (ThreadGroup tgn = tg;
+             tgn != null;
+             tg = tgn, tgn = tg.getParent());
+        Thread handler = new ReferenceHandler(tg, "Reference Handler");
+        /* If there were a special system-only priority greater than
+         * MAX_PRIORITY, it would be used here
+         */
+        handler.setPriority(Thread.MAX_PRIORITY);
+        handler.setDaemon(true);
+        handler.start();    // 一个JVM里面只有这一个守护线程
     }
 
 

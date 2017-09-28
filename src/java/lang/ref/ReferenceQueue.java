@@ -8,8 +8,8 @@
 package java.lang.ref;
 
 /**
- * Reference queues, to which registered reference objects are appended by the
- * garbage collector after the appropriate reachability changes are detected.
+ * Reference queues, to which registered reference objects are appended by the	//garbage collector 是根据可到达性判断, 如果对象变成不可到达会注册到这个Reference queues中
+ * garbage collector after the appropriate reachability changes are detected.	//GC是都是先放入这个等待队列中
  *
  * @version  1.25, 06/04/07
  * @author   Mark Reinhold
@@ -24,12 +24,12 @@ public class ReferenceQueue<T> {
     public ReferenceQueue() { }
 
     private static class Null extends ReferenceQueue {
-	boolean enqueue(Reference r) {
+		boolean enqueue(Reference r) {
 	    return false;
 	}
     }
 
-    static ReferenceQueue NULL = new Null();
+    static ReferenceQueue NULL = new Null();		//这种利用空类作为空节点的方法,在JDK里面很常见
     static ReferenceQueue ENQUEUED = new Null();
 
     static private class Lock { };
@@ -39,21 +39,21 @@ public class ReferenceQueue<T> {
 	private volatile boolean queueEmpty = true;
 
     boolean enqueue(Reference<? extends T> r) {	/* Called only by Reference class */
-	synchronized (r) {
-	    if (r.queue == ENQUEUED) return false;
-	    synchronized (lock) {
-		r.queue = ENQUEUED;
-		r.next = (head == null) ? r : head;
-		head = r;
-		queueLength++;
-		if (queueEmpty) queueEmpty = false;
-                if (r instanceof FinalReference) {
-                    sun.misc.VM.addFinalRefCount(1);
-                }
-		lock.notifyAll();
-		return true;
-	    }
-	}
+		synchronized (r) {
+			if (r.queue == ENQUEUED) return false;
+			synchronized (lock) {
+				r.queue = ENQUEUED;
+				r.next = (head == null) ? r : head;		//这里相当于入栈,放入栈顶了
+				head = r;
+				queueLength++;
+				if (queueEmpty) queueEmpty = false;
+				if (r instanceof FinalReference) {
+					sun.misc.VM.addFinalRefCount(1);
+				}
+				lock.notifyAll();
+				return true;
+			}
+		}
     }
 
     private Reference<? extends T> reallyPoll() {	/* Must hold lock */
@@ -65,7 +65,7 @@ public class ReferenceQueue<T> {
 	    queueLength--;
         if (queueLength <= 0) queueEmpty = true;
             if (r instanceof FinalReference) {
-                sun.misc.VM.addFinalRefCount(-1);
+                sun.misc.VM.addFinalRefCount(-1);		// FinalReference数量减一
             }
 	    return r;
 	}
@@ -81,10 +81,10 @@ public class ReferenceQueue<T> {
      *          otherwise <code>null</code>
      */
     public Reference<? extends T> poll() {
-	if(queueEmpty) return null;
-	synchronized (lock) {
-	    return reallyPoll();
-	}
+		if(queueEmpty) return null;
+		synchronized (lock) {
+			return reallyPoll();
+		}
     }
 
     /**
@@ -110,19 +110,19 @@ public class ReferenceQueue<T> {
     public Reference<? extends T> remove(long timeout)
 	throws IllegalArgumentException, InterruptedException
     {
-	if (timeout < 0) {
-	    throw new IllegalArgumentException("Negative timeout value");
-	}
-	synchronized (lock) {
-	    Reference<? extends T> r = reallyPoll();
-	    if (r != null) return r;
-	    for (;;) {
-		lock.wait(timeout);
-		r = reallyPoll();
-		if (r != null) return r;
-		if (timeout != 0) return null;
-	    }
-	}
+		if (timeout < 0) {
+			throw new IllegalArgumentException("Negative timeout value");
+		}
+		synchronized (lock) {
+			Reference<? extends T> r = reallyPoll();
+			if (r != null) return r;
+			for (;;) {
+			lock.wait(timeout);
+			r = reallyPoll();
+			if (r != null) return r;
+			if (timeout != 0) return null;
+			}
+		}
     }
 
     /**
@@ -133,7 +133,7 @@ public class ReferenceQueue<T> {
      * @throws  InterruptedException  If the wait is interrupted
      */
     public Reference<? extends T> remove() throws InterruptedException {
-	return remove(0);
+		return remove(0);
     }
 
 }

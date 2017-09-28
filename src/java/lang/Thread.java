@@ -937,7 +937,7 @@ public class Thread implements Runnable {
     }
 
     /**
-     * Changes the priority of this thread.
+     * Changes the priority of this thread.     // 修改线程的优先级, 貌似这个东西不是很可靠吧?
      * <p/>
      * First the <code>checkAccess</code> method of this thread is called
      * with no arguments. This may result in throwing a

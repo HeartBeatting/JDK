@@ -8,10 +8,10 @@
 package java.lang.ref;
 
 
-/**
- * Weak reference objects, which do not prevent their referents from being
- * made finalizable, finalized, and then reclaimed.  Weak references are most
- * often used to implement canonicalizing mappings.
+/**                                                                             // 软引用只在内存不够时GC回收, 弱引用在下一次GC时就会被回收.
+ * Weak reference objects, which do not prevent their referents from being      //WeakReference不会阻止引用被标记为可回收的
+ * made finalizable, finalized, and then reclaimed.  Weak references are most   //GC的过程是,先标记为finalizable(可回收的)-->再标记为finalized(已回收的)-->最后直接回收
+ * often used to implement canonicalizing mappings.                             //常常用于canonicalizing mappings, 一种map,为了防止内存用满,map的key或者value使用弱引用,不影响GC.
  *
  * <p> Suppose that the garbage collector determines at a certain point in time
  * that an object is <a href="package-summary.html#reachability">weakly
