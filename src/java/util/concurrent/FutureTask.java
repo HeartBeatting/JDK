@@ -37,7 +37,7 @@ package java.util.concurrent;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * A cancellable asynchronous computation.  This class provides a base
+ * A cancellable asynchronous computation.  This class provides a base  //可取消的异步计算
  * implementation of {@link Future}, with methods to start and cancel
  * a computation, query to see if the computation is complete, and
  * retrieve the result of the computation.  The result can only be
@@ -62,11 +62,11 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class FutureTask<V> implements RunnableFuture<V> {
     /*
-     * Revision notes: This differs from previous versions of this
+     * Revision notes: This differs from previous versions of this      //老的版本是依赖AQS的
      * class that relied on AbstractQueuedSynchronizer, mainly to
      * avoid surprising users about retaining interrupt status during
      * cancellation races. Sync control in the current design relies
-     * on a "state" field updated via CAS to track completion, along
+     * on a "state" field updated via CAS to track completion, along    //改进后的版本只依赖state表示任务是否完成
      * with a simple Treiber stack to hold waiting threads.
      *
      * Style note: As usual, we bypass overhead of using
@@ -226,6 +226,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
         if (UNSAFE.compareAndSwapInt(this, stateOffset, NEW, COMPLETING)) {
             outcome = v;
             UNSAFE.putOrderedInt(this, stateOffset, NORMAL); // final state
+            // Oracle的JDK中提供了Unsafe. putOrderedObject，Unsafe. putOrderedInt，Unsafe. putOrderedLong这三个方法，
+            // JDK会在执行这三个方法时插入StoreStore内存屏障，避免发生写操作重排序
             finishCompletion();
         }
     }
@@ -365,7 +367,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                     Thread t = q.thread;
                     if (t != null) {
                         q.thread = null;
-                        LockSupport.unpark(t);
+                        LockSupport.unpark(t);  //FutureTask里面的阻塞和唤醒动作都靠LockSupport进行的.
                     }
                     WaitNode next = q.next;
                     if (next == null)

@@ -200,7 +200,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      * @throws NullPointerException {@inheritDoc}
      */
     public int lastIndexOf(Object o) {
-        ListIterator<E> it = listIterator(size());
+        ListIterator<E> it = listIterator(size());  // 从后遍历
         if (o==null) {
             while (it.hasPrevious())
                 if (it.previous()==null)

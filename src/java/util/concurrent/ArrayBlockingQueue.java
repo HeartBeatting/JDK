@@ -38,8 +38,8 @@ import java.util.concurrent.locks.*;
 import java.util.*;
 
 /**
- * A bounded {@linkplain BlockingQueue blocking queue} backed by an
- * array.  This queue orders elements FIFO (first-in-first-out).  The
+ * A bounded {@linkplain BlockingQueue blocking queue} backed by an     //是基于循环数组实现的
+ * array.  This queue orders elements FIFO (first-in-first-out).  The   //先进先出
  * <em>head</em> of the queue is that element that has been on the
  * queue the longest time.  The <em>tail</em> of the queue is that
  * element that has been on the queue the shortest time. New elements
@@ -84,10 +84,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     private static final long serialVersionUID = -817911632652898426L;
 
     /** The queued items */
-    final Object[] items;
+    final Object[] items;   // 队列中的元素
 
     /** items index for next take, poll, peek or remove */
-    int takeIndex;
+    int takeIndex;      // 采用循环数组的方式,一个指针往后不停的放入,一个指针不停的往后提取.
 
     /** items index for next put, offer, or add */
     int putIndex;
@@ -101,7 +101,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      */
 
     /** Main lock guarding all access */
-    final ReentrantLock lock;
+    final ReentrantLock lock;   //和LinkedBlockingQueue不同,这里只有一把锁.
     /** Condition for waiting takes */
     private final Condition notEmpty;
     /** Condition for waiting puts */
@@ -112,19 +112,19 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Circularly increment i.
      */
-    final int inc(int i) {
+    final int inc(int i) {  //循环自增,当达到items.length,直接返回0
         return (++i == items.length) ? 0 : i;
     }
 
     /**
      * Circularly decrement i.
      */
-    final int dec(int i) {
+    final int dec(int i) {  //循环自减,当i=0,直接返回items.length
         return ((i == 0) ? items.length : i) - 1;
     }
 
     @SuppressWarnings("unchecked")
-    static <E> E cast(Object item) {
+    static <E> E cast(Object item) {    //其实就是强转
         return (E) item;
     }
 
@@ -146,26 +146,26 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Inserts element at current put position, advances, and signals.
-     * Call only when holding lock.
+     * Inserts element at current put position, advances, and signals.  //放入数组中,向前推进指针,并通知非空
+     * Call only when holding lock.     //这个方法调用时会获取锁,所以不用担心线程安全问题
      */
     private void insert(E x) {
-        items[putIndex] = x;
-        putIndex = inc(putIndex);
-        ++count;
-        notEmpty.signal();
+        items[putIndex] = x;        //数组中putIndex指向x
+        putIndex = inc(putIndex);   //循环自增; putIndex指向下一个待插入的位置; putIndex就一直往后跑, 在方法调用的外层,当然会判断是否达到容量的上限的.
+        ++count;                    //队列中数量加1
+        notEmpty.signal();          //通知非空,signal方法必须在锁中调用的
     }
 
     /**
-     * Extracts element at current take position, advances, and signals.
+     * Extracts element at current take position, advances, and signals.    //和上面方法类似
      * Call only when holding lock.
      */
     private E extract() {
         final Object[] items = this.items;
         E x = this.<E>cast(items[takeIndex]);
         items[takeIndex] = null;
-        takeIndex = inc(takeIndex);
-        --count;
+        takeIndex = inc(takeIndex);             //takeIndex也是一直往后跑,每次都指向下一个提取的位置
+        --count;                                //队列中数量减1
         notFull.signal();
         return x;
     }
@@ -175,16 +175,16 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * Utility for remove and iterator.remove.
      * Call only when holding lock.
      */
-    void removeAt(int i) {
+    void removeAt(int i) {  //正常对象操作就只使用入队和出队,用不到这个方法的
         final Object[] items = this.items;
         // if removing front item, just advance
         if (i == takeIndex) {
-            items[takeIndex] = null;
+            items[takeIndex] = null;    //将数组takeIndex位置的引用指向null
             takeIndex = inc(takeIndex);
         } else {
             // slide over all others up through putIndex.
             for (;;) {
-                int nexti = inc(i);
+                int nexti = inc(i);             //下一个
                 if (nexti != putIndex) {
                     items[i] = items[nexti];
                     i = nexti;
@@ -225,7 +225,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             throw new IllegalArgumentException();
         this.items = new Object[capacity];
         lock = new ReentrantLock(fair);
-        notEmpty = lock.newCondition();
+        notEmpty = lock.newCondition();     //两个Condition是同一个锁的
         notFull =  lock.newCondition();
     }
 
@@ -250,7 +250,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         this(capacity, fair);
 
         final ReentrantLock lock = this.lock;
-        lock.lock(); // Lock only for visibility, not mutual exclusion
+        lock.lock(); // Lock only for visibility, not mutual exclusion  //用锁保证可见性
         try {
             int i = 0;
             try {
@@ -295,7 +295,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     public boolean offer(E e) {
         checkNotNull(e);
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock();    //todo ArrayBlockingQueue为什么不像LinkedBlockingQueue采用两把锁??
         try {
             if (count == items.length)
                 return false;
@@ -321,7 +321,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         lock.lockInterruptibly();
         try {
             while (count == items.length)
-                notFull.await();
+                notFull.await();    //wait方法要在循环判断条件中调用
             insert(e);
         } finally {
             lock.unlock();
@@ -366,7 +366,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         }
     }
 
-    public E take() throws InterruptedException {
+    public E take() throws InterruptedException {   //这些方法都类似
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
@@ -461,7 +461,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * @param o element to be removed from this queue, if present
      * @return {@code true} if this queue changed as a result of the call
      */
-    public boolean remove(Object o) {
+    public boolean remove(Object o) {   //查找到o,然后删除它
         if (o == null) return false;
         final Object[] items = this.items;
         final ReentrantLock lock = this.lock;

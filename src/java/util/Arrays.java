@@ -52,7 +52,7 @@ import java.lang.reflect.*;
  * @author John Rose
  * @since  1.2
  */
-public class Arrays {
+public class Arrays {   // todo 常见的排序后面先实现,再看下对应的方法.
 
     // Suppresses default constructor, ensuring non-instantiability.
     private Arrays() {}
