@@ -316,19 +316,19 @@ import java.util.*;
  */
 public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
-     * The main pool control state, ctl, is an atomic integer packing   // state 是一个原子变量,用来
+     * The main pool control state, ctl, is an atomic integer packing   // ctl 是一个原子变量,用来保存两个值
      * two conceptual fields
-     *   workerCount, indicating the effective number of threads
-     *   runState,    indicating whether running, shutting down etc
+     *   workerCount, indicating the effective number of threads        // 当前线程数
+     *   runState,    indicating whether running, shutting down etc     // 线程池的状态
      *
-     * In order to pack them into one int, we limit workerCount to
-     * (2^29)-1 (about 500 million) threads rather than (2^31)-1 (2
-     * billion) otherwise representable. If this is ever an issue in
-     * the future, the variable can be changed to be an AtomicLong,
-     * and the shift/mask constants below adjusted. But until the need
-     * arises, this code is a bit faster and simpler using an int.
+     * In order to pack them into one int, we limit workerCount to      //为了将两个值打包到一个int大小的变量中
+     * (2^29)-1 (about 500 million) threads rather than (2^31)-1 (2     //我们限制工作线程数小于(2^29)-1, 这个大约5亿
+     * billion) otherwise representable. If this is ever an issue in    //而不是(2^31)-1, (大约20亿)
+     * the future, the variable can be changed to be an AtomicLong,     //如果这个在未来存在太小,可以换成AtomicLong
+     * and the shift/mask constants below adjusted. But until the need  //并需要调整shift和mask
+     * arises, this code is a bit faster and simpler using an int.      //AtomicInteger还是比AtomicLong快一些的,以为计算的位毕竟少一些
      *
-     * The workerCount is the number of workers that have been
+     * The workerCount is the number of workers that have been          //workerCount
      * permitted to start and not permitted to stop.  The value may be
      * transiently different from the actual number of live threads,
      * for example when a ThreadFactory fails to create a thread when
@@ -336,16 +336,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * bookkeeping before terminating. The user-visible pool size is
      * reported as the current size of the workers set.
      *
-     * The runState provides the main lifecyle control, taking on values:
+     * The runState provides the main lifecyle control, taking on values:   //runState控制线程池的生命周期
      *
      *   RUNNING:  Accept new tasks and process queued tasks
-     *   SHUTDOWN: Don't accept new tasks, but process queued tasks
-     *   STOP:     Don't accept new tasks, don't process queued tasks,
+     *   SHUTDOWN: Don't accept new tasks, but process queued tasks         //不接收任务,但是还在执行队列中的任务
+     *   STOP:     Don't accept new tasks, don't process queued tasks,      //不接收任务,不执行队列中任务,中断正在执行的任务
      *             and interrupt in-progress tasks
-     *   TIDYING:  All tasks have terminated, workerCount is zero,
+     *   TIDYING:  All tasks have terminated, workerCount is zero,          //所有的任务被停止了,workerCount为0,会调用terminated钩子方法
      *             the thread transitioning to state TIDYING
      *             will run the terminated() hook method
-     *   TERMINATED: terminated() has completed
+     *   TERMINATED: terminated() has completed                             //完全关闭
      *
      * The numerical order among these values matters, to allow
      * ordered comparisons. The runState monotonically increases over
@@ -362,7 +362,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * TIDYING -> TERMINATED
      *    When the terminated() hook method has completed
      *
-     * Threads waiting in awaitTermination() will return when the
+     * Threads waiting in awaitTermination() will return when the   //线程等待线程池关闭会返回
      * state reaches TERMINATED.
      *
      * Detecting the transition from SHUTDOWN to TIDYING is less
@@ -372,25 +372,27 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * that workerCount is 0 (which sometimes entails a recheck -- see
      * below).
      */
+    // ctl 是一个原子变量,用来保存两个值(当前线程池线程数和线程池状态), 由于这两个值是相互影响的, 不能并发修改, 要不就加锁
+    // 做成在一个原子变量里,每次修改就都可以用CAS,不需要加锁, 不得不说, 作者真的考虑的很周到!!
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
-    private static final int COUNT_BITS = Integer.SIZE - 3;
-    private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
+    private static final int COUNT_BITS = Integer.SIZE - 3;     //32 - 3 = 29
+    private static final int CAPACITY   = (1 << COUNT_BITS) - 1;    //111...1 (28位1)
 
-    // runState is stored in the high-order bits
-    private static final int RUNNING    = -1 << COUNT_BITS;
-    private static final int SHUTDOWN   =  0 << COUNT_BITS;
-    private static final int STOP       =  1 << COUNT_BITS;
-    private static final int TIDYING    =  2 << COUNT_BITS;
-    private static final int TERMINATED =  3 << COUNT_BITS;
-
-    // Packing and unpacking ctl
-    private static int runStateOf(int c)     { return c & ~CAPACITY; }
-    private static int workerCountOf(int c)  { return c & CAPACITY; }
-    private static int ctlOf(int rs, int wc) { return rs | wc; }
-
+    // runState is stored in the high-order bits            // runState(线程池的状态)存储在ctl的高阶位中
+    private static final int RUNNING    = -1 << COUNT_BITS; // 11100000000000000000000000000000 (一共32位,3个1,其余都是0)
+    private static final int SHUTDOWN   =  0 << COUNT_BITS; //                                0
+    private static final int STOP       =  1 << COUNT_BITS; //   100000000000000000000000000000 (一共30位)
+    private static final int TIDYING    =  2 << COUNT_BITS; //  1000000000000000000000000000000 (一共31位)
+    private static final int TERMINATED =  3 << COUNT_BITS; //  1100000000000000000000000000000 (一共31位)
+                                                            // 作者是想用32位里的高3位用来表示运行状态,剩下的29位,用来表示线程数,所以最大线程数为2^29-1
+    // Packing and unpacking ctl                            // 从ctl中分别求出两个值(unpack操作); 根据两个值计算ctl的值(pack操作);
+    private static int runStateOf(int c)     { return c & ~CAPACITY; }  //将CAPACITY按位取反, & 按位相与,计算出高三位的值,低29位都为0,结果就是线程运行状态
+    private static int workerCountOf(int c)  { return c & CAPACITY; }   //& 按位相与, 高三位都为0, 结果就是当前线程数
+    private static int ctlOf(int rs, int wc) { return rs | wc; }        //rs就是runState,wc就是workerCount,这个是根据rs和wc求出ctl的值
+                                                                        //因为rs低位全为0,wc高位全为0,所以只要按位或操作,结果就是ctl的值
     /*
-     * Bit field accessors that don't require unpacking ctl.
-     * These depend on the bit layout and on workerCount being never negative.
+     * Bit field accessors that don't require unpacking ctl.                    //位域并不需要对ctl解包
+     * These depend on the bit layout and on workerCount being never negative.  //这些位计算的方法依赖两个条件: 位的设计和workerCount(线程数)从不为负数
      */
 
     private static boolean runStateLessThan(int c, int s) {
@@ -402,20 +404,20 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     }
 
     private static boolean isRunning(int c) {
-        return c < SHUTDOWN;
+        return c < SHUTDOWN;    //SHUTDOWN值为0, 小于SHUTDOWN说明高位为111,也就是为负数才表示RUNNING状态.
     }
 
     /**
      * Attempt to CAS-increment the workerCount field of ctl.
      */
-    private boolean compareAndIncrementWorkerCount(int expect) {
-        return ctl.compareAndSet(expect, expect + 1);
+    private boolean compareAndIncrementWorkerCount(int expect) {    //CAS自增
+        return ctl.compareAndSet(expect, expect + 1);   //用atomicInteger好处就是每次更新都可以CAS,不需要加锁,线程池的提高吞吐量.
     }
 
     /**
      * Attempt to CAS-decrement the workerCount field of ctl.
      */
-    private boolean compareAndDecrementWorkerCount(int expect) {
+    private boolean compareAndDecrementWorkerCount(int expect) {    //CAS自减
         return ctl.compareAndSet(expect, expect - 1);
     }
 
@@ -424,7 +426,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * abrupt termination of a thread (see processWorkerExit). Other
      * decrements are performed within getTask.
      */
-    private void decrementWorkerCount() {
+    private void decrementWorkerCount() {   //循环进行CAS自减,直到成功
         do {} while (! compareAndDecrementWorkerCount(ctl.get()));
     }
 
@@ -460,7 +462,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
      */
-    private final HashSet<Worker> workers = new HashSet<Worker>();
+    private final HashSet<Worker> workers = new HashSet<Worker>();  //访问这个集合必须持有mainLock
 
     /**
      * Wait condition to support awaitTermination
@@ -477,7 +479,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Counter for completed tasks. Updated only on termination of
      * worker threads. Accessed only under mainLock.
      */
-    private long completedTaskCount;
+    private long completedTaskCount;    //完成的任务数
 
     /*
      * All user control parameters are declared as volatiles so that
@@ -516,14 +518,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * present or if allowCoreThreadTimeOut. Otherwise they wait
      * forever for new work.
      */
-    private volatile long keepAliveTime;
+    private volatile long keepAliveTime;    //单位是nanoseconds 纳秒
 
     /**
      * If false (default), core threads stay alive even when idle.
      * If true, core threads use keepAliveTime to time out waiting
      * for work.
      */
-    private volatile boolean allowCoreThreadTimeOut;
+    private volatile boolean allowCoreThreadTimeOut;    //默认false
 
     /**
      * Core pool size is the minimum number of workers to keep alive
@@ -534,14 +536,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /**
      * Maximum pool size. Note that the actual maximum is internally
-     * bounded by CAPACITY.
+     * bounded by CAPACITY.                                             //最大线程数的上限是 CAPACITY
      */
     private volatile int maximumPoolSize;
 
     /**
      * The default rejected execution handler
      */
-    private static final RejectedExecutionHandler defaultHandler =
+    private static final RejectedExecutionHandler defaultHandler =      //默认策略是抛弃任务,也就是抛出异常: RejectedExecutionException
         new AbortPolicy();
 
     /**
@@ -550,7 +552,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * have permission to actually interrupt threads in the worker set
      * (as governed by Thread.interrupt, which relies on
      * ThreadGroup.checkAccess, which in turn relies on
-     * SecurityManager.checkAccess). Shutdowns are attempted only if
+     * SecurityManager.checkAccess). Shutdowns are attempted only if    //shutDown操作,需要校验权限: ThreadGroup.checkAccess, SecurityManager.checkAccess
      * these checks pass.
      *
      * All actual invocations of Thread.interrupt (see
@@ -568,18 +570,18 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         new RuntimePermission("modifyThread");
 
     /**
-     * Class Worker mainly maintains interrupt control state for
-     * threads running tasks, along with other minor bookkeeping.
+     * Class Worker mainly maintains interrupt control state for            //Worker 主要维护任务线程的中断控制状态
+     * threads running tasks, along with other minor bookkeeping.           //还有些次要的记录
      * This class opportunistically extends AbstractQueuedSynchronizer
      * to simplify acquiring and releasing a lock surrounding each
      * task execution.  This protects against interrupts that are
      * intended to wake up a worker thread waiting for a task from
-     * instead interrupting a task being run.  We implement a simple
+     * instead interrupting a task being run.  We implement a simple        //我们实现了一个简单的非重入互斥锁,没有用ReentrantLock
      * non-reentrant mutual exclusion lock rather than use
-     * ReentrantLock because we do not want worker tasks to be able to
+     * ReentrantLock because we do not want worker tasks to be able to      //我们不希望任务的工作线程能够获取锁,修改线程的参数
      * reacquire the lock when they invoke pool control methods like
      * setCorePoolSize.  Additionally, to suppress interrupts until
-     * the thread actually starts running tasks, we initialize lock
+     * the thread actually starts running tasks, we initialize lock         //我们初始化锁state为负数,在开始的时候清空它
      * state to a negative value, and clear it upon start (in
      * runWorker).
      */
@@ -593,11 +595,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          */
         private static final long serialVersionUID = 6138294804551838833L;
 
-        /** Thread this worker is running in.  Null if factory fails. */
+        /** Thread this worker is running in.  Null if factory fails. */    //thread可能会为null
         final Thread thread;
-        /** Initial task to run.  Possibly null. */
+        /** Initial task to run.  Possibly null. */ //初始化时就有任务给他执行的,也可以为null
         Runnable firstTask;
-        /** Per-thread task counter */
+        /** Per-thread task counter */  //每个线程完成的任务数
         volatile long completedTasks;
 
         /**
@@ -605,20 +607,20 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param firstTask the first task (null if none)
          */
         Worker(Runnable firstTask) {
-            setState(-1); // inhibit interrupts until runWorker
+            setState(-1); // inhibit interrupts until runWorker //设置-1禁止中断
             this.firstTask = firstTask;
-            this.thread = getThreadFactory().newThread(this);   //根据上面的注释,自定义的ThreadFactory如果创建线程失败,可以返回null?
+            this.thread = getThreadFactory().newThread(this);   //根据上面的注释,自定义的ThreadFactory如果创建线程失败,可以返回null
         }
 
         /** Delegates main run loop to outer runWorker  */
         public void run() {
-            runWorker(this);
+            runWorker(this);    //todo,简单描述下做了什么
         }
 
         // Lock methods
         //
-        // The value 0 represents the unlocked state.
-        // The value 1 represents the locked state.
+        // The value 0 represents the unlocked state.   //AQS的state 0 表示未加锁
+        // The value 1 represents the locked state.     //1表示加锁了
 
         protected boolean isHeldExclusively() {
             return getState() != 0;
