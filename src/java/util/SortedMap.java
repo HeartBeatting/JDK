@@ -53,9 +53,9 @@ package java.util;
  * operation, but a sorted map performs all key comparisons using its
  * {@code compareTo} (or {@code compare}) method, so two keys that are
  * deemed equal by this method are, from the standpoint of the sorted map,
- * equal.  The behavior of a tree map <em>is</em> well-defined even if its
- * ordering is inconsistent with equals; it just fails to obey the general
- * contract of the {@code Map} interface.
+ * equal.  The behavior of a tree map <em>is</em> well-defined even if its      // TreeMap的操作是有明确定义的
+ * ordering is inconsistent with equals; it just fails to obey the general      // 甚至他的顺序和equals不一致
+ * contract of the {@code Map} interface.                                       // 他只是难以遵循Map接口的一般契约
  *
  * <p>All general-purpose sorted map implementation classes should provide four
  * "standard" constructors. It is not possible to enforce this recommendation
@@ -75,10 +75,10 @@ package java.util;
  * </ol>
  *
  * <p><strong>Note</strong>: several methods return submaps with restricted key
- * ranges. Such ranges are <em>half-open</em>, that is, they include their low
+ * ranges. Such ranges are <em>half-open</em>, that is, they include their low  // 这样的range是半开放的
  * endpoint but not their high endpoint (where applicable).  If you need a
- * <em>closed range</em> (which includes both endpoints), and the key type
- * allows for calculation of the successor of a given key, merely request
+ * <em>closed range</em> (which includes both endpoints), and the key type      // 如果你需要一个闭合的区间
+ * allows for calculation of the successor of a given key, merely request       // key类型允许计算指定key的后继节点
  * the subrange from {@code lowEndpoint} to
  * {@code successor(highEndpoint)}.  For example, suppose that {@code m}
  * is a map whose keys are strings.  The following idiom obtains a view

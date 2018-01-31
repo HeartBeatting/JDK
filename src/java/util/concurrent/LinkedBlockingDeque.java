@@ -76,22 +76,23 @@ public class LinkedBlockingDeque<E>
     implements BlockingDeque<E>,  java.io.Serializable {
 
     /*
-     * Implemented as a simple doubly-linked list protected by a
+     * Implemented as a simple doubly-linked list protected by a        //由一个双向链表构成,只有一把锁
      * single lock and using conditions to manage blocking.
      *
-     * To implement weakly consistent iterators, it appears we need to
-     * keep all Nodes GC-reachable from a predecessor dequeued Node.
-     * That would cause two problems:
-     * - allow a rogue Iterator to cause unbounded memory retention
-     * - cause cross-generational linking of old Nodes to new Nodes if
+     * To implement weakly consistent iterators, it appears we need to  //为了提供弱一致性的迭代器, 我们需要保持所有的节点迭代器都是可以到达的 (值得一提的是,提供的弱一致性,是线程安全的)
+     * keep all Nodes GC-reachable from a predecessor dequeued Node.    //这个弱一致性要说明下: (1)遍历的时候允许修改 (2) 其他线程做出的修改在遍历时可能看到,也可能看不到
+     * That would cause two problems:                                   //这是因为什么呢? 不是都加了锁了吗?
+     *                                                                  //加锁只能保证线程安全, 在遍历的过程中是一直往后的,如果一直在操作头,指针遍历到后面了,是不会发现头变了的
+     * - allow a rogue Iterator to cause unbounded memory retention     //第一个问题:没有上限的内存保留; 如果迭代器存活着,所有的节点都必须存活(被删除的节点也会存活),这样会造成很大的内存占用
+     * - cause cross-generational linking of old Nodes to new Nodes if  //第二个问题:老的node可能已经进入老年代了,新建的node,加入到队列中,就要维护新生代到老年代的链接引用
      *   a Node was tenured while live, which generational GCs have a
-     *   hard time dealing with, causing repeated major collections.
-     * However, only non-deleted Nodes need to be reachable from
-     * dequeued Nodes, and reachability does not necessarily have to
-     * be of the kind understood by the GC.  We use the trick of
-     * linking a Node that has just been dequeued to itself.  Such a
-     * self-link implicitly means to jump to "first" (for next links)
-     * or "last" (for prev links).
+     *   hard time dealing with, causing repeated major collections.    //分代回收很难处理,会导致重复的major gc (Major GC是清理老年代), (Full GC 是清理整个堆空间—包括年轻代和老年代,Minor gc是清理新生代)
+     * However, only non-deleted Nodes need to be reachable from        //只有 没有被删除的节点,需要是可到达的
+     * dequeued Nodes, and reachability does not necessarily have to    //可达性没有必要一定是GC的可达性
+     * be of the kind understood by the GC.  We use the trick of        //我们采用这样的方式
+     * linking a Node that has just been dequeued to itself.  Such a    //将 被从队列中移除的node指向他自己
+     * self-link implicitly means to jump to "first" (for next links)   //如果next指向自己,则需要跳到开始重新遍历;下次遍历过来时,因为这个节点已经没有引用指向他了,所以下次不会遍历到它
+     * or "last" (for prev links).                                      //如果是prev指向自己,则需要跳转到末尾重新遍历.
      */
 
     /*
@@ -112,9 +113,9 @@ public class LinkedBlockingDeque<E>
 
         /**
          * One of:
-         * - the real predecessor Node
-         * - this Node, meaning the predecessor is tail
-         * - null, meaning there is no predecessor
+         * - the real predecessor Node                  //正常的前驱节点
+         * - this Node, meaning the predecessor is tail //指向当前node,表示前驱节点是tail节点
+         * - null, meaning there is no predecessor      //null,表示没有前驱节点
          */
         Node<E> prev;
 
@@ -152,7 +153,7 @@ public class LinkedBlockingDeque<E>
     private final int capacity;
 
     /** Main lock guarding all access */
-    final ReentrantLock lock = new ReentrantLock();
+    final ReentrantLock lock = new ReentrantLock();     //只有这一把锁
 
     /** Condition for waiting takes */
     private final Condition notEmpty = lock.newCondition();
@@ -193,7 +194,7 @@ public class LinkedBlockingDeque<E>
         this(Integer.MAX_VALUE);
         final ReentrantLock lock = this.lock;
         lock.lock(); // Never contended, but necessary for visibility
-        try {
+        try {        // 这里在构造函数中加锁,是为了保证当前插入的对象,对后续操作可见
             for (E e : c) {
                 if (e == null)
                     throw new NullPointerException();
@@ -251,18 +252,18 @@ public class LinkedBlockingDeque<E>
      */
     private E unlinkFirst() {
         // assert lock.isHeldByCurrentThread();
-        Node<E> f = first;
+        Node<E> f = first;  //f指向第一个
         if (f == null)
             return null;
-        Node<E> n = f.next;
+        Node<E> n = f.next; //n指向f的下一个
         E item = f.item;
-        f.item = null;
-        f.next = f; // help GC
-        first = n;
+        f.item = null;      //第一个item置为null
+        f.next = f; // help GC  //第一个的next指向自己本身,用来帮助gc
+        first = n;          //第一个指向第二个,这样第二个就是新的第一个了
         if (n == null)
             last = null;
         else
-            n.prev = null;
+            n.prev = null;  //前驱指向null,因为n是第一个了,前面没有了
         --count;
         notFull.signal();
         return item;
@@ -293,19 +294,19 @@ public class LinkedBlockingDeque<E>
     /**
      * Unlinks x.
      */
-    void unlink(Node<E> x) {
+    void unlink(Node<E> x) {    //这个方法调用的地方都加锁了,所以没有线程安全问题
         // assert lock.isHeldByCurrentThread();
         Node<E> p = x.prev;
         Node<E> n = x.next;
-        if (p == null) {
+        if (p == null) {    //pre为null,代表是头节点
             unlinkFirst();
-        } else if (n == null) {
+        } else if (n == null) { //next为null,代表是尾节点
             unlinkLast();
-        } else {
-            p.next = n;
-            n.prev = p;
-            x.item = null;
-            // Don't mess with x's links.  They may still be in use by
+        } else {            //都不为空,代表是中间节点
+            p.next = n;     //这时候让p.next指向n; n.prev指向p
+            n.prev = p;     //这样x就会被回了
+            x.item = null;  //item指向null
+            // Don't mess with x's links.  They may still be in use by  //他们仍然可能被迭代器使用到
             // an iterator.
             --count;
             notFull.signal();
@@ -1067,7 +1068,7 @@ public class LinkedBlockingDeque<E>
             final ReentrantLock lock = LinkedBlockingDeque.this.lock;
             lock.lock();
             try {
-                next = firstNode();
+                next = firstNode(); //指向了第一个节点
                 nextItem = (next == null) ? null : next.item;
             } finally {
                 lock.unlock();
@@ -1075,34 +1076,34 @@ public class LinkedBlockingDeque<E>
         }
 
         /**
-         * Returns the successor node of the given non-null, but
-         * possibly previously deleted, node.
+         * Returns the successor node of the given non-null, but    //返回n的后继节点
+         * possibly previously deleted, node.                       //但是可能是前面已经删除的node
          */
-        private Node<E> succ(Node<E> n) {
-            // Chains of deleted nodes ending in null or self-links
-            // are possible if multiple interior nodes are removed.
+        private Node<E> succ(Node<E> n) {   //调用这个方法时已经加锁了
+            // Chains of deleted nodes ending in null or self-links // 被删除的node,会置为null或者指向自己(next或pre指向自己)
+            // are possible if multiple interior nodes are removed. // 如果大量的内部节点被删除了
             for (;;) {
-                Node<E> s = nextNode(n);
+                Node<E> s = nextNode(n);    //返回Node的下一个节点
                 if (s == null)
                     return null;
-                else if (s.item != null)
+                else if (s.item != null)    //s.item为null,表示s节点被删除了
                     return s;
-                else if (s == n)
-                    return firstNode();
+                else if (s == n)            //这里,判断如果下一个节点s,指向的是自己,则说明n是被删除的节点,则直接跳到第一个节点,重新遍历
+                    return firstNode();     //返回第一个节点的引用
                 else
-                    n = s;
+                    n = s;                  //如果s!=n, 让n指向s, 然后继续重试, 这时候n其实就是指向自己的下一个, 相当于继续往后遍历了
             }
         }
 
         /**
-         * Advances next.
+         * Advances next.   向后推进
          */
         void advance() {
             final ReentrantLock lock = LinkedBlockingDeque.this.lock;
             lock.lock();
             try {
                 // assert next != null;
-                next = succ(next);
+                next = succ(next);      //这里会判断,如果next的下一个指向的是自己,
                 nextItem = (next == null) ? null : next.item;
             } finally {
                 lock.unlock();
@@ -1118,7 +1119,7 @@ public class LinkedBlockingDeque<E>
                 throw new NoSuchElementException();
             lastRet = next;
             E x = nextItem;
-            advance();
+            advance();      //每一次向后推进一次
             return x;
         }
 

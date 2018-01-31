@@ -36,9 +36,9 @@
 package java.util.concurrent;
 
 /**
- * An object that creates new threads on demand.  Using thread factories
- * removes hardwiring of calls to {@link Thread#Thread(Runnable) new Thread},
- * enabling applications to use special thread subclasses, priorities, etc.
+ * An object that creates new threads on demand.  Using thread factories        // 根据需要创建新线程
+ * removes hardwiring of calls to {@link Thread#Thread(Runnable) new Thread},   // 使用线程工厂避免使用new方法, 硬编码
+ * enabling applications to use special thread subclasses, priorities, etc.     // 使应用使用特殊的线程子类, 优先顺序等.
  *
  * <p>
  * The simplest implementation of this interface is just:
@@ -50,7 +50,7 @@ package java.util.concurrent;
  * }
  * </pre>
  *
- * The {@link Executors#defaultThreadFactory} method provides a more
+ * The {@link Executors#defaultThreadFactory} method provides a more            // 默认的线程工厂DefaultThreadFactory
  * useful simple implementation, that sets the created thread context
  * to known values before returning it.
  * @since 1.5

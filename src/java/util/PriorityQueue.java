@@ -26,48 +26,48 @@
 package java.util;
 
 /**
- * An unbounded priority {@linkplain Queue queue} based on a priority heap.
+ * An unbounded priority {@linkplain Queue queue} based on a priority heap. //没有上限的优先级队列,基于优先级栈
  * The elements of the priority queue are ordered according to their
  * {@linkplain Comparable natural ordering}, or by a {@link Comparator}
- * provided at queue construction time, depending on which constructor is
- * used.  A priority queue does not permit {@code null} elements.
- * A priority queue relying on natural ordering also does not permit
+ * provided at queue construction time, depending on which constructor is   //取决于选用哪个构造器
+ * used.  A priority queue does not permit {@code null} elements.           //不允许null
+ * A priority queue relying on natural ordering also does not permit        //不允许插入不可compare的对象
  * insertion of non-comparable objects (doing so may result in
  * {@code ClassCastException}).
  *
- * <p>The <em>head</em> of this queue is the <em>least</em> element
+ * <p>The <em>head</em> of this queue is the <em>least</em> element         //queue的head是compare值最小的
  * with respect to the specified ordering.  If multiple elements are
- * tied for least value, the head is one of those elements -- ties are
- * broken arbitrarily.  The queue retrieval operations {@code poll},
+ * tied for least value, the head is one of those elements -- ties are      //联系会被强制打断
+ * broken arbitrarily.  The queue retrieval operations {@code poll},        //操作:poll, remove, peek 和 element 在queue的头获取
  * {@code remove}, {@code peek}, and {@code element} access the
  * element at the head of the queue.
  *
  * <p>A priority queue is unbounded, but has an internal
  * <i>capacity</i> governing the size of an array used to store the
  * elements on the queue.  It is always at least as large as the queue
- * size.  As elements are added to a priority queue, its capacity
- * grows automatically.  The details of the growth policy are not
+ * size.  As elements are added to a priority queue, its capacity           //元素添加到优先级队列中时, 它的容量自动增长
+ * grows automatically.  The details of the growth policy are not           //增长的策略细节没有确定
  * specified.
  *
- * <p>This class and its iterator implement all of the
+ * <p>This class and its iterator implement all of the                      //这个类实现了Collection接口的所有方法
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.  The Iterator provided in method {@link
- * #iterator()} is <em>not</em> guaranteed to traverse the elements of
+ * #iterator()} is <em>not</em> guaranteed to traverse the elements of      //Iterator迭代器的遍历并不保证任何顺序
  * the priority queue in any particular order. If you need ordered
- * traversal, consider using {@code Arrays.sort(pq.toArray())}.
+ * traversal, consider using {@code Arrays.sort(pq.toArray())}.             //可以利用Arrays.sort排序
  *
- * <p> <strong>Note that this implementation is not synchronized.</strong>
- * Multiple threads should not access a {@code PriorityQueue}
+ * <p> <strong>Note that this implementation is not synchronized.</strong>  //注意到实现并不是synchronized同步的
+ * Multiple threads should not access a {@code PriorityQueue}               //PriorityQueue不是线程安全的集合,
  * instance concurrently if any of the threads modifies the queue.
  * Instead, use the thread-safe {@link
- * java.util.concurrent.PriorityBlockingQueue} class.
+ * java.util.concurrent.PriorityBlockingQueue} class.                       //PriorityBlockingQueue是线程安全的
  *
- * <p>Implementation note: this implementation provides
- * O(log(n)) time for the enqueing and dequeing methods
- * ({@code offer}, {@code poll}, {@code remove()} and {@code add});
- * linear time for the {@code remove(Object)} and {@code contains(Object)}
+ * <p>Implementation note: this implementation provides                     //enqueue和dequeue操作是O(log(n))时间复杂度
+ * O(log(n)) time for the enqueing and dequeing methods                     //包括了offer,poll,remove和add操作
+ * ({@code offer}, {@code poll}, {@code remove()} and {@code add});         //所有说在入队和出队的时候,都有一定的逻辑的; 由于新添加元素破坏了堆的性质，所以需要对新的添加的元素做调整，使其移动到正确的位置，使得堆重新符合堆的性质
+ * linear time for the {@code remove(Object)} and {@code contains(Object)}  //remove和contains操作都是线性时间复杂度
  * methods; and constant time for the retrieval methods
- * ({@code peek}, {@code element}, and {@code size}).
+ * ({@code peek}, {@code element}, and {@code size}).                       //peek,element,size操作都是常量时间
  *
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
@@ -84,13 +84,21 @@ public class PriorityQueue<E> extends AbstractQueue<E>
 
     private static final int DEFAULT_INITIAL_CAPACITY = 11;
 
+    /*
+     * 时间复杂度：remove()方法和add()方法时间复杂度为O(logn)，remove(Object obj)和contains()方法需要O(n)时间复杂度，取队头则需要O(1)时间 (取队头,不会删除队头)
+     * 在初始化阶段会执行建堆函数，最终建立的是最小堆，每次出队和入队操作不能保证队列元素的有序性，只能保证队头元素和新插入元素的有序性，如果需要有序输出队列中的元素，则只要调用Arrays.sort()方法即可
+     * 可以使用Iterator的迭代器方法输出队列中元素
+     * PriorityQueue是非同步的，要实现同步需要调用java.util.concurrent包下的PriorityBlockingQueue类来实现同步
+     * 在队列中不允许使用null元素
+     */
+
     /**
-     * Priority queue represented as a balanced binary heap: the two
-     * children of queue[n] are queue[2*n+1] and queue[2*(n+1)].  The
-     * priority queue is ordered by comparator, or by the elements'
-     * natural ordering, if comparator is null: For each node n in the
-     * heap and each descendant d of n, n <= d.  The element with the
-     * lowest value is in queue[0], assuming the queue is nonempty.
+     * Priority queue represented as a balanced binary heap: the two    //queue数组用来表示一个平衡二叉树
+     * children of queue[n] are queue[2*n+1] and queue[2*(n+1)].  The   //PriorityQueue底层实现的数据结构是“堆”，堆具有以下两个性质：
+     * priority queue is ordered by comparator, or by the elements'     //任意一个节点的值总是不大于（最大堆）或者不小于（最小堆）其父节点的值；堆是一棵完全二叉树
+     * natural ordering, if comparator is null: For each node n in the  //优先队列在Java中的使用的最小堆，意味着每次从队列取出的都是最小的元素
+     * heap and each descendant d of n, n <= d.  The element with the   //左孩子节点的下标left(i)=2*i，右孩子节点right(i) = 2*i+1
+     * lowest value is in queue[0], assuming the queue is nonempty.     //这样的话就可以把数据结构中复杂的树形元素放在简单的数组中了
      */
     private transient Object[] queue;
 
@@ -100,13 +108,13 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     private int size = 0;
 
     /**
-     * The comparator, or null if priority queue uses elements'
+     * The comparator, or null if priority queue uses elements'         //如果使用元素原始的顺序,comparator就是null
      * natural ordering.
      */
     private final Comparator<? super E> comparator;
 
     /**
-     * The number of times this priority queue has been
+     * The number of times this priority queue has been                 //用来表示priority queue结构被改变的次数
      * <i>structurally modified</i>.  See AbstractList for gory details.
      */
     private transient int modCount = 0;
@@ -117,7 +125,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * {@linkplain Comparable natural ordering}.
      */
     public PriorityQueue() {
-        this(DEFAULT_INITIAL_CAPACITY, null);
+        this(DEFAULT_INITIAL_CAPACITY, null);               //构造函数默认容量是11
     }
 
     /**
@@ -251,7 +259,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Initializes queue array with elements from the given Collection.
+     * Initializes queue array with elements from the given Collection.     //用collection里面的元素初始化queue
      *
      * @param c the collection
      */
@@ -275,7 +283,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      */
     private void grow(int minCapacity) {
         int oldCapacity = queue.length;
-        // Double size if small; else grow by 50%
+        // Double size if small; else grow by 50%               //在size<64时每次倍增, 大于64后,每次增加一半.
         int newCapacity = oldCapacity + ((oldCapacity < 64) ?
                                          (oldCapacity + 2) :
                                          (oldCapacity >> 1));
@@ -705,9 +713,9 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Establishes the heap invariant (described above) in the entire tree,
-     * assuming nothing about the order of the elements prior to the call.
-     */
+     * Establishes the heap invariant (described above) in the entire tree,     //在整个树中建立堆的不变量.
+     * assuming nothing about the order of the elements prior to the call.      //在调用之前,没有考虑元素的顺序.
+     */                                                                         //这个如果自己自定义一个集合,可以在后台预加载数据,然后来获取的时候就直接获取了,不需要获取的时候再排序
     private void heapify() {
         for (int i = (size >>> 1) - 1; i >= 0; i--)
             siftDown(i, (E) queue[i]);

@@ -138,7 +138,7 @@ import sun.security.util.SecurityConstants;
  * @since   JDK1.0
  */
 public
-class Thread implements Runnable {
+class Thread implements Runnable {  // Thread其实就是一个普通的java对象,唯一不同的就是这个类可以直接调用native方法,可以调用底层系统的功能.
     /* Make sure registerNatives is the first thing <clinit> does. */
     private static native void registerNatives();
     static {
@@ -704,7 +704,7 @@ class Thread implements Runnable {
         }
     }
 
-    private native void start0();
+    private native void start0();   //这个start0方法也是native方法,以及下面的中断等操作.
 
     /**
      * If this thread was constructed using a separate

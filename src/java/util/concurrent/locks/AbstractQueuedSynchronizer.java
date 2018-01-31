@@ -1816,13 +1816,13 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Condition implementation for a {@link
-     * AbstractQueuedSynchronizer} serving as the basis of a {@link
+     * AbstractQueuedSynchronizer} serving as the basis of a {@link     // Condition是作为Lock实现的基础
      * Lock} implementation.
      *
-     * <p>Method documentation for this class describes mechanics,
-     * not behavioral specifications from the point of view of Lock
-     * and Condition users. Exported versions of this class will in
-     * general need to be accompanied by documentation describing
+     * <p>Method documentation for this class describes mechanics,      //这个类的方法文档描述了机构
+     * not behavioral specifications from the point of view of Lock     //不是Lock和condition的使用说明
+     * and Condition users. Exported versions of this class will in     //现在这个类是静态的可暴露的
+     * general need to be accompanied by documentation describing       //暴露这个类,需要完善文档描述
      * condition semantics that rely on those of the associated
      * <tt>AbstractQueuedSynchronizer</tt>.
      *

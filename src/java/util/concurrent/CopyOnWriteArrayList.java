@@ -39,26 +39,26 @@ import java.util.concurrent.locks.*;
 import sun.misc.Unsafe;
 
 /**
- * A thread-safe variant of {@link java.util.ArrayList} in which all mutative
- * operations (<tt>add</tt>, <tt>set</tt>, and so on) are implemented by
+ * A thread-safe variant of {@link java.util.ArrayList} in which all mutative   // ArrayList的一个线程安全的实现类
+ * operations (<tt>add</tt>, <tt>set</tt>, and so on) are implemented by        // 修改操作add,set等, 都是通过copy一个,然后对备份进行操作的
  * making a fresh copy of the underlying array.
  *
- * <p> This is ordinarily too costly, but may be <em>more</em> efficient
- * than alternatives when traversal operations vastly outnumber
- * mutations, and is useful when you cannot or don't want to
+ * <p> This is ordinarily too costly, but may be <em>more</em> efficient    // 如果对象本身比较大,copy的代价就比较高
+ * than alternatives when traversal operations vastly outnumber             // 在遍历操作远远多于写操作时,这种方案可能会更有效
+ * mutations, and is useful when you cannot or don't want to                // 当你不想对遍历操作加锁时,这种办法会比较有用
  * synchronize traversals, yet need to preclude interference among
  * concurrent threads.  The "snapshot" style iterator method uses a
- * reference to the state of the array at the point that the iterator
+ * reference to the state of the array at the point that the iterator       // 这里的迭代器,使用的引用是迭代器创建时候的
  * was created. This array never changes during the lifetime of the
  * iterator, so interference is impossible and the iterator is
- * guaranteed not to throw <tt>ConcurrentModificationException</tt>.
+ * guaranteed not to throw <tt>ConcurrentModificationException</tt>.        // 不会抛出ConcurrentModificationException
  * The iterator will not reflect additions, removals, or changes to
  * the list since the iterator was created.  Element-changing
  * operations on iterators themselves (<tt>remove</tt>, <tt>set</tt>, and
  * <tt>add</tt>) are not supported. These methods throw
  * <tt>UnsupportedOperationException</tt>.
  *
- * <p>All elements are permitted, including <tt>null</tt>.
+ * <p>All elements are permitted, including <tt>null</tt>.                  // 也允许插入null对象
  *
  * <p>Memory consistency effects: As with other concurrent
  * collections, actions in a thread prior to placing an object into a
@@ -80,16 +80,16 @@ public class CopyOnWriteArrayList<E>
     private static final long serialVersionUID = 8673264195747942595L;
 
     /** The lock protecting all mutators */
-    transient final ReentrantLock lock = new ReentrantLock();
+    transient final ReentrantLock lock = new ReentrantLock();   // 只有一把锁,这个对象是可序列化的,这个属性申明为transient
 
     /** The array, accessed only via getArray/setArray. */
-    private volatile transient Object[] array;
+    private volatile transient Object[] array;                  // 这个属性是volatile类型,只会被getArray/setArray两个方法访问
 
     /**
      * Gets the array.  Non-private so as to also be accessible
      * from CopyOnWriteArraySet class.
      */
-    final Object[] getArray() {
+    final Object[] getArray() {                                 // 这个方法可以给CopyOnWriteArraySet类使用, setArray方法也是的
         return array;
     }
 
@@ -103,7 +103,7 @@ public class CopyOnWriteArrayList<E>
     /**
      * Creates an empty list.
      */
-    public CopyOnWriteArrayList() {
+    public CopyOnWriteArrayList() {     //这里构造方法也是调用setArray方法
         setArray(new Object[0]);
     }
 
@@ -361,7 +361,7 @@ public class CopyOnWriteArrayList<E>
         }
     }
 
-    // Positional Access Operations
+    // Positional Access Operations     ==> 从这开始,下面的方法都是位置相关的操作
 
     @SuppressWarnings("unchecked")
     private E get(Object[] a, int index) {
@@ -384,19 +384,20 @@ public class CopyOnWriteArrayList<E>
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
     public E set(int index, E element) {
-        final ReentrantLock lock = this.lock;
+        final ReentrantLock lock = this.lock;   // 这里的Set操作加锁了,set操作不允许并发
         lock.lock();
         try {
-            Object[] elements = getArray();
-            E oldValue = get(elements, index);
+            Object[] elements = getArray();     // 获取array
+            E oldValue = get(elements, index);  // 获取array index位置的原来的值
 
-            if (oldValue != element) {
-                int len = elements.length;
-                Object[] newElements = Arrays.copyOf(elements, len);
-                newElements[index] = element;
-                setArray(newElements);
-            } else {
-                // Not quite a no-op; ensures volatile write semantics
+            if (oldValue != element) {          // 待设置的值和原值不等
+                int len = elements.length;      // array的长度
+                Object[] newElements = Arrays.copyOf(elements, len);    //copy一份newElements
+                newElements[index] = element;   // index位置替换成element
+                setArray(newElements);          // set方法将原来的elements指向newElements.  volatile的数组只针对数组的引用具有volatile的语义，而不是它的元素
+                                                // 注意: elements虽然是volatile,但是这是数组,只能保证数组整个的引用是可见的,某个元素变了是对其他线程不可见的. 可以写个小程序测试下.
+            } else {                            // 这里因为只有一个线程写, 多个线程读, 所以是线程安全的.
+                // Not quite a no-op; ensures volatile write semantics  // 这里不是一个无用的操作,是为了保证对volatile的写
                 setArray(elements);
             }
             return oldValue;
@@ -411,13 +412,13 @@ public class CopyOnWriteArrayList<E>
      * @param e element to be appended to this list
      * @return <tt>true</tt> (as specified by {@link Collection#add})
      */
-    public boolean add(E e) {
+    public boolean add(E e) {                   // 下面的操作,都是逻辑一致的,就是copy一个数组,编辑好了,再赋值到elements中
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
             Object[] elements = getArray();
             int len = elements.length;
-            Object[] newElements = Arrays.copyOf(elements, len + 1);
+            Object[] newElements = Arrays.copyOf(elements, len + 1);    // 比原来长一位
             newElements[len] = e;
             setArray(newElements);
             return true;
@@ -580,7 +581,7 @@ public class CopyOnWriteArrayList<E>
      * @param e element to be added to this list, if absent
      * @return <tt>true</tt> if the element was added
      */
-    public boolean addIfAbsent(E e) {
+    public boolean addIfAbsent(E e) {       // 避免重复放入对象
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {

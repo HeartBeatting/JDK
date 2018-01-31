@@ -583,12 +583,12 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     /**
-     * Cache to support the object identity semantics of autoboxing for values between
-     * -128 and 127 (inclusive) as required by JLS.
+     * Cache to support the object identity semantics of autoboxing for values between  // 用于支持对象的装箱和拆箱语义, 范围在-128 ~ 127 两边都是闭区间
+     * -128 and 127 (inclusive) as required by JLS.                                     // Java Language Specification
      *
-     * The cache is initialized on first usage.  The size of the cache
-     * may be controlled by the -XX:AutoBoxCacheMax=<size> option.
-     * During VM initialization, java.lang.Integer.IntegerCache.high property
+     * The cache is initialized on first usage.  The size of the cache                  // 第一次使用时会初始化缓存
+     * may be controlled by the -XX:AutoBoxCacheMax=<size> option.                      // 缓存的大小可以用 -XX:AutoBoxCacheMax= 调节
+     * During VM initialization, java.lang.Integer.IntegerCache.high property           // VM初始化时, java.lang.Integer.IntegerCache.high属性被设置和保存
      * may be set and saved in the private system properties in the
      * sun.misc.VM class.
      */
@@ -598,34 +598,34 @@ public final class Integer extends Number implements Comparable<Integer> {
         static final int high;
         static final Integer cache[];
 
-        static {
+        static {                                                // 这里是static代码块,加载类时会执行
             // high value may be configured by property
             int h = 127;
             String integerCacheHighPropValue =
                 sun.misc.VM.getSavedProperty("java.lang.Integer.IntegerCache.high");
             if (integerCacheHighPropValue != null) {
                 int i = parseInt(integerCacheHighPropValue);
-                i = Math.max(i, 127);
+                i = Math.max(i, 127);                           // h最小就是127
                 // Maximum array size is Integer.MAX_VALUE
-                h = Math.min(i, Integer.MAX_VALUE - (-low) -1);
+                h = Math.min(i, Integer.MAX_VALUE - (-low) -1); // 最大是 Integer.MAX_VALUE - 128 - 1
             }
             high = h;
 
-            cache = new Integer[(high - low) + 1];
+            cache = new Integer[(high - low) + 1];              // 这里初始化Integer数组, 这个数组就是作为Integer的缓存了
             int j = low;
-            for(int k = 0; k < cache.length; k++)
+            for(int k = 0; k < cache.length; k++)               // 从-128 到 127 初始化数组里面的值.
                 cache[k] = new Integer(j++);
         }
 
-        private IntegerCache() {}
+        private IntegerCache() {}                               // 禁止实例化
     }
 
     /**
-     * Returns an {@code Integer} instance representing the specified
-     * {@code int} value.  If a new {@code Integer} instance is not
+     * Returns an {@code Integer} instance representing the specified   // 根据int值,返回一个Integer实例对象
+     * {@code int} value.  If a new {@code Integer} instance is not     // 如果需要创建一个Integer新实例,请使用构造犯法
      * required, this method should generally be used in preference to
      * the constructor {@link #Integer(int)}, as this method is likely
-     * to yield significantly better space and time performance by
+     * to yield significantly better space and time performance by      // 这个方法是为了利用缓存大大提高了空间和时间效率
      * caching frequently requested values.
      *
      * This method will always cache values in the range -128 to 127,
@@ -633,13 +633,13 @@ public final class Integer extends Number implements Comparable<Integer> {
      *
      * @param  i an {@code int} value.
      * @return an {@code Integer} instance representing {@code i}.
-     * @since  1.5
+     * @since  1.5                                              // 这个方法始于 jdk 1.5, 1.5才有装箱和拆箱新特性的.
      */
-    public static Integer valueOf(int i) {
-        assert IntegerCache.high >= 127;
-        if (i >= IntegerCache.low && i <= IntegerCache.high)
+    public static Integer valueOf(int i) {                      // 这个方法是装箱
+        assert IntegerCache.high >= 127;                        // 这里也做了缓存的,提高效率
+        if (i >= IntegerCache.low && i <= IntegerCache.high)    // 在缓存返回内就直接返回缓存的Integer对象.
             return IntegerCache.cache[i + (-IntegerCache.low)];
-        return new Integer(i);
+        return new Integer(i);                                  // 否则返回一个新创建的对象
     }
 
     /**

@@ -158,7 +158,7 @@ import java.util.concurrent.atomic.*;
  *
  */
 
-public class Semaphore implements java.io.Serializable {
+public class Semaphore implements java.io.Serializable {    // semaphore就是把AQS的state定义为许可数
     private static final long serialVersionUID = -3222578661600680210L;
     /** All mechanics via AbstractQueuedSynchronizer subclass */
     private final Sync sync;

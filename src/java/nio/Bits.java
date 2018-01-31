@@ -626,10 +626,10 @@ class Bits {                            // package-private
     private static volatile long count;
     private static boolean memoryLimitSet = false;
 
-    // These methods should be called whenever direct memory is allocated or
+    // These methods should be called whenever direct memory is allocated or    // 分配直接内存和回收直接内存都会调用这个方法
     // freed.  They allow the user to control the amount of direct memory
     // which a process may access.  All sizes are specified in bytes.
-    static void reserveMemory(long size, int cap) {
+    static void reserveMemory(long size, int cap) {     // 分配内存
         synchronized (Bits.class) {
             if (!memoryLimitSet && VM.isBooted()) {
                 maxMemory = VM.maxDirectMemory();
@@ -642,20 +642,20 @@ class Bits {                            // package-private
                 reservedMemory += size;
                 totalCapacity += cap;
                 count++;
-                return;
+                return;                 // 内存不够了才会往下走,触发gc
             }
         }
 
-        System.gc();
+        System.gc();                    // 通知full gc
         try {
-            Thread.sleep(100);
+            Thread.sleep(100);      // 很干脆的直接sleep 100毫秒
         } catch (InterruptedException x) {
             // Restore interrupt status
             Thread.currentThread().interrupt();
         }
         synchronized (Bits.class) {
             if (totalCapacity + cap > maxMemory)
-                throw new OutOfMemoryError("Direct buffer memory");
+                throw new OutOfMemoryError("Direct buffer memory"); // gc后还是不够,直接抛出异常
             reservedMemory += size;
             totalCapacity += cap;
             count++;
@@ -663,7 +663,7 @@ class Bits {                            // package-private
 
     }
 
-    static synchronized void unreserveMemory(long size, int cap) {
+    static synchronized void unreserveMemory(long size, int cap) {  // 清理内存
         if (reservedMemory > 0) {
             reservedMemory -= size;
             totalCapacity -= cap;

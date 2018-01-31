@@ -38,14 +38,14 @@ package java.util.concurrent;
 import java.util.Random;
 
 /**
- * A random number generator isolated to the current thread.  Like the
- * global {@link java.util.Random} generator used by the {@link
- * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized
- * with an internally generated seed that may not otherwise be
- * modified. When applicable, use of {@code ThreadLocalRandom} rather
- * than shared {@code Random} objects in concurrent programs will
- * typically encounter much less overhead and contention.  Use of
- * {@code ThreadLocalRandom} is particularly appropriate when multiple
+ * A random number generator isolated to the current thread.  Like the  // 一个随机数生成器, 每个线程相互独立, 相互隔离的
+ * global {@link java.util.Random} generator used by the {@link         // 就像Random类
+ * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized    // ThreadLocalRandom初始化
+ * with an internally generated seed that may not otherwise be          // 使用一个内部生成的seed(种子), 不允许被修改的
+ * modified. When applicable, use of {@code ThreadLocalRandom} rather   // 如果这个类适用的情况下, 应该优先于Random使用
+ * than shared {@code Random} objects in concurrent programs will       // 在并发场景下, 减少开销和竞争 (原来的Random内部是使用CAS生成下一个随机数)
+ * typically encounter much less overhead and contention.  Use of       // 此类避免了竞争
+ * {@code ThreadLocalRandom} is particularly appropriate when multiple  // 当多任务在多线程中并行使用随机数时, 此类尤其合适
  * tasks (for example, each a {@link ForkJoinTask}) use random numbers
  * in parallel in thread pools.
  *
@@ -53,7 +53,7 @@ import java.util.Random;
  * {@code ThreadLocalRandom.current().nextX(...)} (where
  * {@code X} is {@code Int}, {@code Long}, etc).
  * When all usages are of this form, it is never possible to
- * accidently share a {@code ThreadLocalRandom} across multiple threads.
+ * accidently share a {@code ThreadLocalRandom} across multiple threads.    // 这样使用,就不可能有意外的情况 , todo
  *
  * <p>This class also provides additional commonly used bounded random
  * generation methods.

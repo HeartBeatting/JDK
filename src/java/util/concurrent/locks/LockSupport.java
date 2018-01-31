@@ -58,33 +58,33 @@ import sun.misc.Unsafe;
  * to {@code unpark} it will preserve liveness, due to the
  * permit. Additionally, {@code park} will return if the caller's
  * thread was interrupted, and timeout versions are supported. The
- * {@code park} method may also return at any other time, for "no
- * reason", so in general must be invoked within a loop that rechecks
+ * {@code park} method may also return at any other time, for "no       // 和隐式锁一样,可能偶然的返回了,所以在调用时需要在一个循环中
+ * reason", so in general must be invoked within a loop that rechecks   // 并且需要校验条件是否满足,这是和操作系统实现的一种权衡和拖鞋.
  * conditions upon return. In this sense {@code park} serves as an
  * optimization of a "busy wait" that does not waste as much time
  * spinning, but must be paired with an {@code unpark} to be
  * effective.
  *
- * <p>The three forms of {@code park} each also support a
- * {@code blocker} object parameter. This object is recorded while
- * the thread is blocked to permit monitoring and diagnostic tools to
- * identify the reasons that threads are blocked. (Such tools may
- * access blockers using method {@link #getBlocker}.) The use of these
- * forms rather than the original forms without this parameter is
- * strongly encouraged. The normal argument to supply as a
+ * <p>The three forms of {@code park} each also support a               // 支持blocker对象入参
+ * {@code blocker} object parameter. This object is recorded while      // 阻塞时,记录对象,用来允许监控和
+ * the thread is blocked to permit monitoring and diagnostic tools to   // 诊断工具
+ * identify the reasons that threads are blocked. (Such tools may       // 标记线程阻塞的原因
+ * access blockers using method {@link #getBlocker}.) The use of these  // 这样的工具可以通过getBlocker方法
+ * forms rather than the original forms without this parameter is       // 相比较普通的形式,这些形式更建议被使用
+ * strongly encouraged. The normal argument to supply as a              // 普通的参数,是this
  * {@code blocker} within a lock implementation is {@code this}.
  *
- * <p>These methods are designed to be used as tools for creating
- * higher-level synchronization utilities, and are not in themselves
+ * <p>These methods are designed to be used as tools for creating       // 这些方法设计被用于构建高级别的同步工具类
+ * higher-level synchronization utilities, and are not in themselves    // 他们本身不用于大多数的并发控制应用
  * useful for most concurrency control applications.  The {@code park}
  * method is designed for use only in constructions of the form:
- * <pre>while (!canProceed()) { ... LockSupport.park(this); }</pre>
+ * <pre>while (!canProceed()) { ... LockSupport.park(this); }</pre>     // park方法,必须在循环包裹中使用
  * where neither {@code canProceed} nor any other actions prior to the
- * call to {@code park} entail locking or blocking.  Because only one
+ * call to {@code park} entail locking or blocking.  Because only one   // 每个线程只有一个许可
  * permit is associated with each thread, any intermediary uses of
  * {@code park} could interfere with its intended effects.
  *
- * <p><b>Sample Usage.</b> Here is a sketch of a first-in-first-out
+ * <p><b>Sample Usage.</b> Here is a sketch of a first-in-first-out     // 例子:FIFO非重入锁
  * non-reentrant lock class:
  * <pre>{@code
  * class FIFOMutex {
@@ -92,7 +92,7 @@ import sun.misc.Unsafe;
  *   private final Queue<Thread> waiters
  *     = new ConcurrentLinkedQueue<Thread>();
  *
- *   public void lock() {
+ *   public void lock() {                                               // 加锁
  *     boolean wasInterrupted = false;
  *     Thread current = Thread.currentThread();
  *     waiters.add(current);
@@ -101,16 +101,16 @@ import sun.misc.Unsafe;
  *     while (waiters.peek() != current ||
  *            !locked.compareAndSet(false, true)) {
  *        LockSupport.park(this);
- *        if (Thread.interrupted()) // ignore interrupts while waiting
+ *        if (Thread.interrupted()) // ignore interrupts while waiting  // 循环的时候忽略中断标记,这里只是记录一下
  *          wasInterrupted = true;
  *     }
  *
  *     waiters.remove();
- *     if (wasInterrupted)          // reassert interrupt status on exit
+ *     if (wasInterrupted)          // reassert interrupt status on exit    // 这里判断上面记录的标记,中断当前线程
  *        current.interrupt();
  *   }
  *
- *   public void unlock() {
+ *   public void unlock() {                                             // 释放锁
  *     locked.set(false);
  *     LockSupport.unpark(waiters.peek());
  *   }

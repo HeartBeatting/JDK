@@ -467,7 +467,7 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
     public boolean offer(E e) {
         if (e == null)
             throw new NullPointerException();
-        final ReentrantLock lock = this.lock;
+        final ReentrantLock lock = this.lock;   //这个类相比较PriorytyQueue,就是因为加锁了所以线程安全了
         lock.lock();
         int n, cap;
         Object[] array;

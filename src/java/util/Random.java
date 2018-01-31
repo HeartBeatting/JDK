@@ -156,8 +156,8 @@ class Random implements java.io.Serializable {
     }
 
     /**
-     * Generates the next pseudorandom number. Subclasses should
-     * override this, as this is used by all other methods.
+     * Generates the next pseudorandom number. Subclasses should                // 生成下一个伪随机数
+     * override this, as this is used by all other methods.                     // 子类应该覆盖这个(protected)方法,
      *
      * <p>The general contract of {@code next} is that it returns an
      * {@code int} value and if the argument {@code bits} is between
@@ -170,7 +170,7 @@ class Random implements java.io.Serializable {
      * and returning
      *  <pre>{@code (int)(seed >>> (48 - bits))}.</pre>
      *
-     * This is a linear congruential pseudorandom number generator, as
+     * This is a linear congruential pseudorandom number generator, as          // 线性同余伪随机数生成器
      * defined by D. H. Lehmer and described by Donald E. Knuth in
      * <i>The Art of Computer Programming,</i> Volume 3:
      * <i>Seminumerical Algorithms</i>, section 3.2.1.
@@ -180,13 +180,13 @@ class Random implements java.io.Serializable {
      *         generator's sequence
      * @since  1.1
      */
-    protected int next(int bits) {
+    protected int next(int bits) {      // 这个方法使用了CAS是线程安全的, 但是高并发情况下会有很多竞争.
         long oldseed, nextseed;
         AtomicLong seed = this.seed;
         do {
-            oldseed = seed.get();
-            nextseed = (oldseed * multiplier + addend) & mask;
-        } while (!seed.compareAndSet(oldseed, nextseed));
+            oldseed = seed.get();       // 获取老的值
+            nextseed = (oldseed * multiplier + addend) & mask;  // 获得下一个随机数
+        } while (!seed.compareAndSet(oldseed, nextseed));       // cas修改seed
         return (int)(nextseed >>> (48 - bits));
     }
 

@@ -51,7 +51,7 @@ import java.util.NoSuchElementException;
  * queue the longest time.                                                      //入队时间最短的在尾部,出队时是从头部获取的
  * The <em>tail</em> of the queue is that element that has been on the
  * queue the shortest time. New elements                                        //新元素入队插入到尾部
- * are inserted at the tail of the queue, and the queue retrieval               //出队从头部获取,所以LinkedBlockingQueue采用双向链表,可以双向检索.
+ * are inserted at the tail of the queue, and the queue retrieval               //出队从头部获取, LinkedBlockingQueue采用的是单向链表,但是头尾两个指针,两把锁.
  * operations obtain elements at the head of the queue.                         //头尾加了两把锁提高吞吐量.
  * Linked queues typically have higher throughput than array-based queues but   //链表结构比数组结构吞吐量高,为什么?
  * less predictable performance in most concurrent applications.                //但是在大多数的并发应用场景中较难预测,就是差异比较大.
@@ -119,7 +119,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Linked list node class
      */
-    static class Node<E> {
+    static class Node<E> {  //这是一个单向链表
         E item;
 
         /**
@@ -143,7 +143,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      * Head of linked list.
      * Invariant: head.item == null
      */
-    private transient Node<E> head;     // 从head和last可知, LinkedBlockingQueue是一个双向链表.
+    private transient Node<E> head;     // LinkedBlockingQueue是一个单向链表.
 
     /**
      * Tail of linked list.
@@ -260,8 +260,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     public LinkedBlockingQueue(int capacity) {
         if (capacity <= 0) throw new IllegalArgumentException();
         this.capacity = capacity;
-        last = head = new Node<E>(null);    //头指针和尾指针包装的item为null.
-    }
+        last = head = new Node<E>(null);    //最开始,last和head都是指向一个空节点, 头指针和尾指针包装的item为null.
+    }                                          //随着不停的插入删除,head和last才不一样了
 
     /**
      * Creates a {@code LinkedBlockingQueue} with a capacity of
@@ -787,52 +787,52 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
          * item to hand out so that if hasNext() reports true, we will
          * still have it to return even if lost race with a take etc.
          */
-        private Node<E> current;
-        private Node<E> lastRet;
-        private E currentElement;
+        private Node<E> current;    //指向当前node
+        private Node<E> lastRet;    //指向上一个node
+        private E currentElement;   //指向当前的element
 
         Itr() {
-            fullyLock();
+            fullyLock();            //Iterator的构造函数加锁,保证了线程安全和可见性
             try {
-                current = head.next;
+                current = head.next;    //current指向head的下一个
                 if (current != null)
-                    currentElement = current.item;
+                    currentElement = current.item;  //当前element
             } finally {
                 fullyUnlock();
             }
         }
 
-        public boolean hasNext() {
+        public boolean hasNext() {  //返回true,表示有值可取
             return current != null;
         }
 
         /**
          * Returns the next live successor of p, or null if no such.
          *
-         * Unlike other traversal methods, iterators need to handle both:
-         * - dequeued nodes (p.next == p)
-         * - (possibly multiple) interior removed nodes (p.item == null)
+         * Unlike other traversal methods, iterators need to handle both:   //两种情况
+         * - dequeued nodes (p.next == p)                                   //1. 已经出队的节点 (p.next == p) 已经出队了,为什么还会遍历到? 继续往下看.
+         * - (possibly multiple) interior removed nodes (p.item == null)    //2. 被删除的节点 (p.item == null)
          */
         private Node<E> nextNode(Node<E> p) {
-            for (;;) {
+            for (;;) {                      //可以不停重试
                 Node<E> s = p.next;
-                if (s == p)
-                    return head.next;
+                if (s == p)                 //如果s==p,表示p的next指向的就是p; 说明p已经出队了.
+                    return head.next;       //直接返回头节点,下面从头节点开始遍历
                 if (s == null || s.item != null)
                     return s;
                 p = s;
             }
         }
 
-        public E next() {
-            fullyLock();
-            try {
-                if (current == null)
+        public E next() {               //迭代器的next方法
+            fullyLock();                //注意: 推进的这整个过程是加锁的,但是只保证了线程安全, 如果和take()方法在竞争锁时失败了,take方法执行后, node被设置成自己指向自己了.
+            try {                       //take只会在队列的头部获取, 所以只有迭代器在遍历头部节点时可能会获取不到
+                if (current == null)    //next方法没有值会抛出异常的, 正常会用hasNext先做校验再执行
                     throw new NoSuchElementException();
-                E x = currentElement;
-                lastRet = current;
-                current = nextNode(current);
-                currentElement = (current == null) ? null : current.item;
+                E x = currentElement;   //currentElement在构造函数初始化时赋值的,在调用next方法时,可能当时的head节点已经不存在了,但是x还是老的元素,这个可以写个小例子验证下的.
+                lastRet = current;      //lastRet改下指向
+                current = nextNode(current);    //current向后推进; 里面会判断如果current自己指向自己了,会继续推进到下一个
+                currentElement = (current == null) ? null : current.item;   //element赋值
                 return x;
             } finally {
                 fullyUnlock();

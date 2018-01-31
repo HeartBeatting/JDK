@@ -119,7 +119,7 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @since 1.6
      */
     public final void lazySet(long newValue) {
-        unsafe.putOrderedLong(this, valueOffset, newValue);
+        unsafe.putOrderedLong(this, valueOffset, newValue);     // 就是不保证可见性,但是保证顺序一致性.
     }
 
     /**

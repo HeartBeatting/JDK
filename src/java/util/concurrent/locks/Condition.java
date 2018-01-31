@@ -38,30 +38,30 @@ import java.util.concurrent.*;
 import java.util.Date;
 
 /**
- * {@code Condition} factors out the {@code Object} monitor
+ * {@code Condition} factors out the {@code Object} monitor                 //Condition参照Object的监视器锁方法wait,notify,notifyAll
  * methods ({@link Object#wait() wait}, {@link Object#notify notify}
- * and {@link Object#notifyAll notifyAll}) into distinct objects to
- * give the effect of having multiple wait-sets per object, by
+ * and {@link Object#notifyAll notifyAll}) into distinct objects to         //显示锁对象
+ * give the effect of having multiple wait-sets per object, by              //可以实现一个对象里有多个condition对象
  * combining them with the use of arbitrary {@link Lock} implementations.
- * Where a {@code Lock} replaces the use of {@code synchronized} methods
- * and statements, a {@code Condition} replaces the use of the Object
+ * Where a {@code Lock} replaces the use of {@code synchronized} methods    //Lock替换原来的synchronized锁
+ * and statements, a {@code Condition} replaces the use of the Object       //condition替换原来的Object.wait等方法
  * monitor methods.
  *
- * <p>Conditions (also known as <em>condition queues</em> or
- * <em>condition variables</em>) provide a means for one thread to
- * suspend execution (to &quot;wait&quot;) until notified by another
+ * <p>Conditions (also known as <em>condition queues</em> or                //等待队列
+ * <em>condition variables</em>) provide a means for one thread to          //提供这样的语义
+ * suspend execution (to &quot;wait&quot;) until notified by another        //一个线程一直阻塞wait,直到被其他线程notify唤醒
  * thread that some state condition may now be true.  Because access
- * to this shared state information occurs in different threads, it
- * must be protected, so a lock of some form is associated with the
- * condition. The key property that waiting for a condition provides
- * is that it <em>atomically</em> releases the associated lock and
- * suspends the current thread, just like {@code Object.wait}.
+ * to this shared state information occurs in different threads, it         //因为获取state信息操作,发生在不同的线程中,必须用锁保证线程安全
+ * must be protected, so a lock of some form is associated with the         //Condition里的属性,在不同的线程中并发修改就有线程安全问题,需要加锁后才能使用
+ * condition. The key property that waiting for a condition provides        //而且每个condition是和一个Lock对应的,只有通过Lock才能创建condition,操作condition,需要获取同一锁.
+ * is that it <em>atomically</em> releases the associated lock and          //自动释放锁,和暂停线程
+ * suspends the current thread, just like {@code Object.wait}.              //和wait一样的效果
  *
- * <p>A {@code Condition} instance is intrinsically bound to a lock.
+ * <p>A {@code Condition} instance is intrinsically bound to a lock.        //一个Condition本质上和一个锁绑定
  * To obtain a {@code Condition} instance for a particular {@link Lock}
- * instance use its {@link Lock#newCondition newCondition()} method.
+ * instance use its {@link Lock#newCondition newCondition()} method.        //Lock.newCondition
  *
- * <p>As an example, suppose we have a bounded buffer which supports
+ * <p>As an example, suppose we have a bounded buffer which supports        //下面举了个condition使用的小例子
  * {@code put} and {@code take} methods.  If a
  * {@code take} is attempted on an empty buffer, then the thread will block
  * until an item becomes available; if a {@code put} is attempted on a
@@ -111,46 +111,46 @@ import java.util.Date;
  * }
  * </pre>
  *
- * (The {@link java.util.concurrent.ArrayBlockingQueue} class provides
+ * (The {@link java.util.concurrent.ArrayBlockingQueue} class provides          //这个小例子,在ArrayBlockingQueue中已经实现了,不需要自己再实现了
  * this functionality, so there is no reason to implement this
  * sample usage class.)
  *
- * <p>A {@code Condition} implementation can provide behavior and semantics
+ * <p>A {@code Condition} implementation can provide behavior and semantics     //行为和语义:
  * that is
- * different from that of the {@code Object} monitor methods, such as
- * guaranteed ordering for notifications, or not requiring a lock to be held
+ * different from that of the {@code Object} monitor methods, such as           //和Object监视器方法不同
+ * guaranteed ordering for notifications, or not requiring a lock to be held    //新增了保证notify的有序性, 或者调用notify时不需要获取锁?? , todo
  * when performing notifications.
- * If an implementation provides such specialized semantics then the
+ * If an implementation provides such specialized semantics then the            //如果有实现了这些语义的,需要在文档中说明
  * implementation must document those semantics.
  *
- * <p>Note that {@code Condition} instances are just normal objects and can
- * themselves be used as the target in a {@code synchronized} statement,
- * and can have their own monitor {@link Object#wait wait} and
+ * <p>Note that {@code Condition} instances are just normal objects and can     //condition就是普通的对象
+ * themselves be used as the target in a {@code synchronized} statement,        //他们本身是可以在synchronized语句中使用
+ * and can have their own monitor {@link Object#wait wait} and                  //也有自己的wait和notify方法, (使用的时候要注意区分下)
  * {@link Object#notify notification} methods invoked.
- * Acquiring the monitor lock of a {@code Condition} instance, or using its
- * monitor methods, has no specified relationship with acquiring the
+ * Acquiring the monitor lock of a {@code Condition} instance, or using its     //condition的监视器锁,和监视器锁的方法
+ * monitor methods, has no specified relationship with acquiring the            //和显示锁Lock没有联系
  * {@link Lock} associated with that {@code Condition} or the use of its
  * {@linkplain #await waiting} and {@linkplain #signal signalling} methods.
- * It is recommended that to avoid confusion you never use {@code Condition}
+ * It is recommended that to avoid confusion you never use {@code Condition}    //建议不这样使用
  * instances in this way, except perhaps within their own implementation.
  *
  * <p>Except where noted, passing a {@code null} value for any parameter
  * will result in a {@link NullPointerException} being thrown.
  *
- * <h3>Implementation Considerations</h3>
+ * <h3>Implementation Considerations</h3>                                       //实现考虑的几个点
  *
- * <p>When waiting upon a {@code Condition}, a &quot;<em>spurious
+ * <p>When waiting upon a {@code Condition}, a &quot;<em>spurious               //当调用condition.await时,是允许假唤醒的
  * wakeup</em>&quot; is permitted to occur, in
- * general, as a concession to the underlying platform semantics.
- * This has little practical impact on most application programs as a
- * {@code Condition} should always be waited upon in a loop, testing
- * the state predicate that is being waited for.  An implementation is
+ * general, as a concession to the underlying platform semantics.               //是为了对系统语义的让步
+ * This has little practical impact on most application programs as a           //这个对大部分的应用程序影响很小
+ * {@code Condition} should always be waited upon in a loop, testing            //因为condition必须在循环中等待
+ * the state predicate that is being waited for.  An implementation is          //一个实现可以自由的删除假唤醒的可能
  * free to remove the possibility of spurious wakeups but it is
- * recommended that applications programmers always assume that they can
+ * recommended that applications programmers always assume that they can        //但还是建议应用开发者用于假设他们可能发生,所以用于在循环中等待
  * occur and so always wait in a loop.
  *
- * <p>The three forms of condition waiting
- * (interruptible, non-interruptible, and timed) may differ in their ease of
+ * <p>The three forms of condition waiting                                      //condition有三种等待方式
+ * (interruptible, non-interruptible, and timed) may differ in their ease of    //1.响应中断的, 2.不响应中断的 3,可超时的
  * implementation on some platforms and in their performance characteristics.
  * In particular, it may be difficult to provide these features and maintain
  * specific semantics such as ordering guarantees.
@@ -167,8 +167,8 @@ import java.util.Date;
  * thread suspension then it must obey the interruption semantics as defined
  * in this interface.
  *
- * <p>As interruption generally implies cancellation, and checks for
- * interruption are often infrequent, an implementation can favor responding
+ * <p>As interruption generally implies cancellation, and checks for            //一般来说,中断就意味着取消
+ * interruption are often infrequent, an implementation can favor responding    //检查中断是很频繁的
  * to an interrupt over normal method return. This is true even if it can be
  * shown that the interrupt occurred after another action that may have
  * unblocked the thread. An implementation should document this behavior.
@@ -196,9 +196,9 @@ public interface Condition {
      * <li>A &quot;<em>spurious wakeup</em>&quot; occurs.
      * </ul>
      *
-     * <p>In all cases, before this method can return the current thread must
-     * re-acquire the lock associated with this condition. When the
-     * thread returns it is <em>guaranteed</em> to hold this lock.
+     * <p>In all cases, before this method can return the current thread must   //在所有的场景下,当前线程方法返回前
+     * re-acquire the lock associated with this condition. When the             //必须重新竞争获取condition对应的锁
+     * thread returns it is <em>guaranteed</em> to hold this lock.              //当线程返回,他就一定获取了锁
      *
      * <p>If the current thread:
      * <ul>
@@ -300,7 +300,7 @@ public interface Condition {
      * case, whether or not the test for interruption occurs before the lock
      * is released.
      *
-     * <p>The method returns an estimate of the number of nanoseconds
+     * <p>The method returns an estimate of the number of nanoseconds       //返回剩余的纳秒
      * remaining to wait given the supplied {@code nanosTimeout}
      * value upon return, or a value less than or equal to zero if it
      * timed out. This value can be used to determine whether and how
@@ -374,7 +374,7 @@ public interface Condition {
     boolean await(long time, TimeUnit unit) throws InterruptedException;
 
     /**
-     * Causes the current thread to wait until it is signalled or interrupted,
+     * Causes the current thread to wait until it is signalled or interrupted,      //等待,直到被唤醒,被中断,或者指定的时间点到了
      * or the specified deadline elapses.
      *
      * <p>The lock associated with this condition is atomically

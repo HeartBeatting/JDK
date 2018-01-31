@@ -26,8 +26,8 @@
 package java.util;
 
 /**
- * Doubly-linked list implementation of the {@code List} and {@code Deque}
- * interfaces.  Implements all optional list operations, and permits all
+ * Doubly-linked list implementation of the {@code List} and {@code Deque}      //todo LinkedList为什么要使用双向链表,因为实现了Deque接口
+ * interfaces.  Implements all optional list operations, and permits all        //可以从两端开始操作
  * elements (including {@code null}).
  *
  * <p>All of the operations perform as could be expected for a doubly-linked
@@ -49,7 +49,7 @@ package java.util;
  * unsynchronized access to the list:<pre>
  *   List list = Collections.synchronizedList(new LinkedList(...));</pre>
  *
- * <p>The iterators returned by this class's {@code iterator} and
+ * <p>The iterators returned by this class's {@code iterator} and           //快速失败
  * {@code listIterator} methods are <i>fail-fast</i>: if the list is
  * structurally modified at any time after the iterator is created, in
  * any way except through the Iterator's own {@code remove} or
@@ -59,7 +59,7 @@ package java.util;
  * risking arbitrary, non-deterministic behavior at an undetermined
  * time in the future.
  *
- * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
+ * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed      //不能保证
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
  * throw {@code ConcurrentModificationException} on a best-effort basis.
@@ -122,7 +122,7 @@ public class LinkedList<E>
      */
     private void linkFirst(E e) {
         final Node<E> f = first;
-        final Node<E> newNode = new Node<>(null, e, f);
+        final Node<E> newNode = new Node<>(null, e, f); //每次都new一个Node,包裹e对象
         first = newNode;
         if (f == null)
             last = newNode;
@@ -564,7 +564,7 @@ public class LinkedList<E>
     Node<E> node(int index) {
         // assert isElementIndex(index);
 
-        if (index < (size >> 1)) {
+        if (index < (size >> 1)) {  //判断如果index小于一半就从头开始检索,否则从末尾开始检索; 这也是双向链表的好处,可以双向遍历.
             Node<E> x = first;
             for (int i = 0; i < index; i++)
                 x = x.next;
@@ -862,7 +862,7 @@ public class LinkedList<E>
      * @see List#listIterator(int)
      */
     public ListIterator<E> listIterator(int index) {
-        checkPositionIndex(index);
+        checkPositionIndex(index);  // 校验index是否越界
         return new ListItr(index);
     }
 
@@ -872,7 +872,7 @@ public class LinkedList<E>
         private int nextIndex;
         private int expectedModCount = modCount;
 
-        ListItr(int index) {
+        ListItr(int index) {    //index就是初始化的位置
             // assert isPositionIndex(index);
             next = (index == size) ? null : node(index);
             nextIndex = index;

@@ -44,5 +44,5 @@ package java.util.concurrent;
  * @author Doug Lea
  * @param <V> The result type returned by this Future
  */
-public interface ScheduledFuture<V> extends Delayed, Future<V> {
-}
+public interface ScheduledFuture<V> extends Delayed, Future<V> {    // ScheduledFuture继承了Delayed和Future
+}                                                                   // Delayed继承了Comparable接口

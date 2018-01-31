@@ -478,7 +478,7 @@ public class PrintWriter extends Writer {
             synchronized (lock) {
                 ensureOpen();
                 out.write(lineSeparator);
-                if (autoFlush)
+                if (autoFlush)      //autoFlush自动刷新就是在这里进行的
                     out.flush();
             }
         }
@@ -626,7 +626,7 @@ public class PrintWriter extends Writer {
      * character (<code>'\n'</code>).
      */
     public void println() {
-        newLine();
+        newLine();  //这里也会调用自动刷新的
     }
 
     /**
@@ -903,7 +903,7 @@ public class PrintWriter extends Writer {
                     || (formatter.locale() != Locale.getDefault()))
                     formatter = new Formatter(this);
                 formatter.format(Locale.getDefault(), format, args);
-                if (autoFlush)
+                if (autoFlush)  //这里进行自动刷新
                     out.flush();
             }
         } catch (InterruptedIOException x) {

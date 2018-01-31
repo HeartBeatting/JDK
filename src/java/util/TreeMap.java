@@ -26,12 +26,12 @@
 package java.util;
 
 /**
- * A Red-Black tree based {@link NavigableMap} implementation.
+ * A Red-Black tree based {@link NavigableMap} implementation.                      // 基于NavigableMap实现的一个红黑树
  * The map is sorted according to the {@linkplain Comparable natural
  * ordering} of its keys, or by a {@link Comparator} provided at map
  * creation time, depending on which constructor is used.
  *
- * <p>This implementation provides guaranteed log(n) time cost for the
+ * <p>This implementation provides guaranteed log(n) time cost for the              // 这些操作都是log(n)时间复杂度
  * {@code containsKey}, {@code get}, {@code put} and {@code remove}
  * operations.  Algorithms are adaptations of those in Cormen, Leiserson, and
  * Rivest's <em>Introduction to Algorithms</em>.

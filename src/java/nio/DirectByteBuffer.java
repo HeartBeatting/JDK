@@ -27,11 +27,12 @@
 
 package java.nio;
 
-import java.io.FileDescriptor;
 import sun.misc.Cleaner;
 import sun.misc.Unsafe;
 import sun.misc.VM;
 import sun.nio.ch.DirectBuffer;
+
+import java.io.FileDescriptor;
 
 
 class DirectByteBuffer
@@ -114,7 +115,7 @@ class DirectByteBuffer
 
     // Primary constructor
     //
-    DirectByteBuffer(int cap) {                   // package-private
+    DirectByteBuffer(int cap) {                   // package-private    // 构造方法是私有的
 
         super(-1, 0, cap, cap);
         boolean pa = VM.isDirectMemoryPageAligned();
@@ -124,9 +125,9 @@ class DirectByteBuffer
 
         long base = 0;
         try {
-            base = unsafe.allocateMemory(size);
-        } catch (OutOfMemoryError x) {
-            Bits.unreserveMemory(size, cap);
+            base = unsafe.allocateMemory(size); // 底层的方法是调用unsafe分配直接内存
+        } catch (OutOfMemoryError x) {          // 内存不够时,jvm抛出异常OutOfMemoryError
+            Bits.unreserveMemory(size, cap);    // 这里会清理计数
             throw x;
         }
         unsafe.setMemory(base, size, (byte) 0);

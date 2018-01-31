@@ -102,8 +102,8 @@ public class ConsoleHandler extends StreamHandler {
      *                 silently ignored and is not published
      */
     public void publish(LogRecord record) {
-        super.publish(record);
-        flush();
+        super.publish(record);  //这里也是调用I/O接口,进行读写操作.
+        flush();                //刷新
     }
 
     /**

@@ -354,9 +354,9 @@ public class Executors {
     }
 
     /**
-     * Returns a {@link Callable} object that, when
-     * called, runs the given task and returns the given result.  This
-     * can be useful when applying methods requiring a
+     * Returns a {@link Callable} object that, when                     // 方法会返回一个Callable对象
+     * called, runs the given task and returns the given result.  This  // 被调用时,执行指定task(入参), 返回给定的结果result(也是入参), 其实就是任务执行完, 会将结果写到result里
+     * can be useful when applying methods requiring a                  // 这个在应用方法, 需要一个Callable, 获取执行结果时很有用
      * <tt>Callable</tt> to an otherwise resultless action.
      * @param task the task to run
      * @param result the result to return
@@ -365,8 +365,8 @@ public class Executors {
      */
     public static <T> Callable<T> callable(Runnable task, T result) {
         if (task == null)
-            throw new NullPointerException();
-        return new RunnableAdapter<T>(task, result);
+            throw new NullPointerException();           // 校验空指针
+        return new RunnableAdapter<T>(task, result);    //
     }
 
     /**
@@ -455,19 +455,19 @@ public class Executors {
         return new PrivilegedCallableUsingCurrentClassLoader<T>(callable);
     }
 
-    // Non-public classes supporting the public methods
+    // Non-public classes supporting the public methods     // 下面都是非公共的class,提供给上面public方法使用的
 
     /**
      * A callable that runs given task and returns given result
      */
-    static final class RunnableAdapter<T> implements Callable<T> {
+    static final class RunnableAdapter<T> implements Callable<T> {  // 这是一个Callable接口的适配器, 用于将task和result适配到接口上
         final Runnable task;
         final T result;
         RunnableAdapter(Runnable task, T result) {
             this.task = task;
             this.result = result;
         }
-        public T call() {
+        public T call() {                                   // 实现了接口的唯一方法, 就是执行任务, 并返回结果result
             task.run();
             return result;
         }

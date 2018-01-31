@@ -104,7 +104,7 @@ public abstract class Reader implements Readable, Closeable {
     }
 
     /**
-     * Reads a single character.  This method will block until a character is
+     * Reads a single character.  This method will block until a character is   //一次读取一个字符
      * available, an I/O error occurs, or the end of the stream is reached.
      *
      * <p> Subclasses that intend to support efficient single-character input
@@ -117,8 +117,8 @@ public abstract class Reader implements Readable, Closeable {
      * @exception  IOException  If an I/O error occurs
      */
     public int read() throws IOException {
-        char cb[] = new char[1];
-        if (read(cb, 0, 1) == -1)
+        char cb[] = new char[1];    //一次读取一个字符
+        if (read(cb, 0, 1) == -1)   //也是调用下面的read方法
             return -1;
         else
             return cb[0];

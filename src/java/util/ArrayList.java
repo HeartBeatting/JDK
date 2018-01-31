@@ -806,8 +806,8 @@ public class ArrayList<E> extends AbstractList<E>
     /**
      * Returns an iterator over the elements in this list in proper sequence.
      *
-     * <p>The returned iterator is <a href="#fail-fast"><i>fail-fast</i></a>.
-     *
+     * <p>The returned iterator is <a href="#fail-fast"><i>fail-fast</i></a>.   //fail-fast快速失败,就是在遍历的时候,不允许修改当前集合
+     *                                                                          //相对应的并发集合也有迭代器,但是不是快速失败的,是采用的弱一致性,遍历的时候会允许修改
      * @return an iterator over the elements in this list in proper sequence
      */
     public Iterator<E> iterator() {
@@ -815,12 +815,12 @@ public class ArrayList<E> extends AbstractList<E>
     }
 
     /**
-     * An optimized version of AbstractList.Itr
+     * An optimized version of AbstractList.Itr     //下面看下迭代器是怎么实现的
      */
     private class Itr implements Iterator<E> {
-        int cursor;       // index of next element to return
-        int lastRet = -1; // index of last element returned; -1 if no such
-        int expectedModCount = modCount;
+        int cursor;       // index of next element to return    //指向下一个待取的元素, int不赋值默认值为0 !
+        int lastRet = -1; // index of last element returned; -1 if no such  //指向上一个元素,这里为什么要指向上一个呢?遍历时指向下一个不就行了吗? 继续往下看.
+        int expectedModCount = modCount;                        //这个是用来判断在遍历的时候, 判断有修改就抛出ConcurrentModificationException
 
         public boolean hasNext() {
             return cursor != size;
@@ -828,27 +828,27 @@ public class ArrayList<E> extends AbstractList<E>
 
         @SuppressWarnings("unchecked")
         public E next() {
-            checkForComodification();
-            int i = cursor;
+            checkForComodification();                   //这里可以看到,每次next方法都会校验一下,在遍历的时候是否有修改List; 可以通过迭代器删除元素,但是不能在迭代器遍历的时候,通过其他方式修改List
+            int i = cursor;                             //有一点需要注意的是,ArrayList不是线程安全的,所以不能在多线程中并发访问,不管是遍历还是修改都是单线程中执行的.
             if (i >= size)
                 throw new NoSuchElementException();
             Object[] elementData = ArrayList.this.elementData;
             if (i >= elementData.length)
-                throw new ConcurrentModificationException();
+                throw new ConcurrentModificationException();    //这也是一次校验,i>=elementData.length,说明内容大小变化了
             cursor = i + 1;
-            return (E) elementData[lastRet = i];
+            return (E) elementData[lastRet = i];        //返回第i个元素
         }
 
-        public void remove() {
+        public void remove() {  //迭代器,是允许通过Iterator接口里的这个方法删除元素的.
             if (lastRet < 0)
                 throw new IllegalStateException();
-            checkForComodification();
+            checkForComodification();   //迭代器的所有方法,开头处都会校验这个异常,实际就是逼着用户不能在遍历的时候修改了
 
             try {
-                ArrayList.this.remove(lastRet);
+                ArrayList.this.remove(lastRet);     //删除遍历到的元素,remove方法会修改modCount++
                 cursor = lastRet;
-                lastRet = -1;
-                expectedModCount = modCount;
+                lastRet = -1;                       //删除了,上一个元素就不存在了
+                expectedModCount = modCount;        //更新expectedModCount,否则执行后续方法会跑异常的
             } catch (IndexOutOfBoundsException ex) {
                 throw new ConcurrentModificationException();
             }

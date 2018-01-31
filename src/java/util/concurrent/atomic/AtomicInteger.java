@@ -48,7 +48,9 @@ import sun.misc.Unsafe;
  *
  * @since 1.5
  * @author Doug Lea
-*/
+*/  // Atomic包下的对象都是原子类,原子类一般都用来进行一些自增等快速操作,都是依赖自旋和CAS完成的,就是只依赖cpu的计算
+    // 相比较locks包下,以及信号量,重入锁等有lock功能的工具类,他们也有cas的功能,但是cas失败都会进入阻塞队列,线程会阻塞,
+    // 如果任务很快很频繁,简单的自旋效率就比需要阻塞和唤醒的工具类来的要更快一些了.
 public class AtomicInteger extends Number implements java.io.Serializable {
     private static final long serialVersionUID = 6214790243416807050L;
 

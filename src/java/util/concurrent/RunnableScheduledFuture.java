@@ -54,5 +54,5 @@ public interface RunnableScheduledFuture<V> extends RunnableFuture<V>, Scheduled
      *
      * @return true if this task is periodic
      */
-    boolean isPeriodic();
+    boolean isPeriodic();   // 是否是周期任务
 }

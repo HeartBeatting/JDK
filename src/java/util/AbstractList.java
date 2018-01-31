@@ -26,7 +26,11 @@
 package java.util;
 
 /**
- * This class provides a skeletal implementation of the {@link List}
+ * 所谓“随机存取”，指的是当存储器中的消息被读取或写入时，所需要的时间与这段信息所在的位置无关。
+ * 相对的，读取或写入顺序访问（SequentialAccess）存储设备中的信息时，其所需要的时间与位置就会有关系
+ * @see AbstractSequentialList
+ *
+ * This class provides a skeletal implementation of the {@link List}            //随机访问和顺序访问
  * interface to minimize the effort required to implement this interface
  * backed by a "random access" data store (such as an array).  For sequential
  * access data (such as a linked list), {@link AbstractSequentialList} should
@@ -200,13 +204,13 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      * @throws NullPointerException {@inheritDoc}
      */
     public int lastIndexOf(Object o) {
-        ListIterator<E> it = listIterator(size());  // 从后遍历
+        ListIterator<E> it = listIterator(size());  //listIterator size() 就可以从最后一个开始遍历了
         if (o==null) {
             while (it.hasPrevious())
                 if (it.previous()==null)
                     return it.nextIndex();
         } else {
-            while (it.hasPrevious())
+            while (it.hasPrevious())        // 从后遍历,找到立马返回
                 if (o.equals(it.previous()))
                     return it.nextIndex();
         }
@@ -389,7 +393,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
 
     private class ListItr extends Itr implements ListIterator<E> {
         ListItr(int index) {
-            cursor = index;
+            cursor = index;     //初始化当前指针指向index位置, 如果index=0就是从头开始遍历,如果index=size就可以用来从尾部向前遍历
         }
 
         public boolean hasPrevious() {
@@ -480,7 +484,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      * @throws IllegalArgumentException if the endpoint indices are out of order
      *         {@code (fromIndex > toIndex)}
      */
-    public List<E> subList(int fromIndex, int toIndex) {
+    public List<E> subList(int fromIndex, int toIndex) {    //切割List
         return (this instanceof RandomAccess ?
                 new RandomAccessSubList<>(this, fromIndex, toIndex) :
                 new SubList<>(this, fromIndex, toIndex));
@@ -610,7 +614,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
     }
 }
 
-class SubList<E> extends AbstractList<E> {
+class SubList<E> extends AbstractList<E> {  //包级私有的类,只有AbstractList可以访问的
     private final AbstractList<E> l;
     private final int offset;
     private int size;

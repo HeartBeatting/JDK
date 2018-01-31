@@ -39,18 +39,18 @@ import java.util.concurrent.locks.*;
 import java.util.*;
 
 /**
- * An unbounded {@linkplain BlockingQueue blocking queue} of
- * <tt>Delayed</tt> elements, in which an element can only be taken
- * when its delay has expired.  The <em>head</em> of the queue is that
+ * An unbounded {@linkplain BlockingQueue blocking queue} of            //一个没有上限的阻塞队列
+ * <tt>Delayed</tt> elements, in which an element can only be taken     //元素只有在延时超时后才能被take
+ * when its delay has expired.  The <em>head</em> of the queue is that  //在队列顶端的是最先超时的元素
  * <tt>Delayed</tt> element whose delay expired furthest in the
- * past.  If no delay has expired there is no head and <tt>poll</tt>
- * will return <tt>null</tt>. Expiration occurs when an element's
+ * past.  If no delay has expired there is no head and <tt>poll</tt>    //如果没有超时的,poll方法会返回null
+ * will return <tt>null</tt>. Expiration occurs when an element's       //超时发生在element的getDelay方法,返回值<=0
  * <tt>getDelay(TimeUnit.NANOSECONDS)</tt> method returns a value less
- * than or equal to zero.  Even though unexpired elements cannot be
+ * than or equal to zero.  Even though unexpired elements cannot be     //没有超时的元素,不能被take或者poll
  * removed using <tt>take</tt> or <tt>poll</tt>, they are otherwise
- * treated as normal elements. For example, the <tt>size</tt> method
+ * treated as normal elements. For example, the <tt>size</tt> method    //size方法返回已经超时和未超时的元素
  * returns the count of both expired and unexpired elements.
- * This queue does not permit null elements.
+ * This queue does not permit null elements.                            //这个集合不允许存放null对象
  *
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
@@ -65,26 +65,26 @@ import java.util.*;
  * @param <E> the type of elements held in this collection
  */
 
-public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
+public class DelayQueue<E extends Delayed> extends AbstractQueue<E>     //DelayQueue实现了BlockingQueue,所以DelayQueue是BlockingQueue的增强
     implements BlockingQueue<E> {
 
     private transient final ReentrantLock lock = new ReentrantLock();
-    private final PriorityQueue<E> q = new PriorityQueue<E>();
+    private final PriorityQueue<E> q = new PriorityQueue<E>();          //这里的优先级队列,才是延时队列的核心!
 
     /**
-     * Thread designated to wait for the element at the head of
-     * the queue.  This variant of the Leader-Follower pattern
+     * Thread designated to wait for the element at the head of     //lead线程,用于等待获取队列中的头结点
+     * the queue.  This variant of the Leader-Follower pattern      //是Leader-Follower模式的变体
      * (http://www.cs.wustl.edu/~schmidt/POSA/POSA2/) serves to
-     * minimize unnecessary timed waiting.  When a thread becomes
-     * the leader, it waits only for the next delay to elapse, but
-     * other threads await indefinitely.  The leader thread must
+     * minimize unnecessary timed waiting.  When a thread becomes   //将不必要的等待时间最小化
+     * the leader, it waits only for the next delay to elapse, but  //当一个线程变成leader,它会一直等待,直到下一个节点超时发生
+     * other threads await indefinitely.  The leader thread must    //其他线程无限期的等待, leader线程take/poll方法获取到元素前,必须signal其他线程
      * signal some other thread before returning from take() or
-     * poll(...), unless some other thread becomes leader in the
-     * interim.  Whenever the head of the queue is replaced with
+     * poll(...), unless some other thread becomes leader in the    //除非其他线程临时标称了leader
+     * interim.  Whenever the head of the queue is replaced with    //任何时候,队列中的头元素被替换成了更早超时的元素
      * an element with an earlier expiration time, the leader
-     * field is invalidated by being reset to null, and some
-     * waiting thread, but not necessarily the current leader, is
-     * signalled.  So waiting threads must be prepared to acquire
+     * field is invalidated by being reset to null, and some        //leader field会被设置为null,标记为无效
+     * waiting thread, but not necessarily the current leader, is   //其他等待的线程会被signal通知,不一定是当前的leader
+     * signalled.  So waiting threads must be prepared to acquire   //所有所有等待的线程,必须随时准备着获取或者丢失领导权.
      * and lose leadership while waiting.
      */
     private Thread leader = null;
@@ -133,12 +133,12 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      */
     public boolean offer(E e) {
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock();                    //offer操作,加锁了
         try {
             q.offer(e);
-            if (q.peek() == e) {
-                leader = null;
-                available.signal();
+            if (q.peek() == e) {        //如果第一个就是刚放进去的e
+                leader = null;          //leader设置为null
+                available.signal();     //通知一个等待的线程, 被通知的线程会被激活成leader
             }
             return true;
         } finally {
@@ -147,13 +147,13 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     }
 
     /**
-     * Inserts the specified element into this delay queue. As the queue is
+     * Inserts the specified element into this delay queue. As the queue is // 因为队列没有上限,所以这个方法永远不会block
      * unbounded this method will never block.
      *
      * @param e the element to add
      * @throws NullPointerException {@inheritDoc}
      */
-    public void put(E e) {
+    public void put(E e) {  // put和offer就是一样的
         offer(e);
     }
 
@@ -167,12 +167,12 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      * @return <tt>true</tt>
      * @throws NullPointerException {@inheritDoc}
      */
-    public boolean offer(E e, long timeout, TimeUnit unit) {
+    public boolean offer(E e, long timeout, TimeUnit unit) {    //这里只是为了实现BlockQueue的接口,其实这个方法永远不会超时的
         return offer(e);
     }
 
     /**
-     * Retrieves and removes the head of this queue, or returns <tt>null</tt>
+     * Retrieves and removes the head of this queue, or returns <tt>null</tt>   //获取到超时的元素,就删除头结点;否则返回null
      * if this queue has no elements with an expired delay.
      *
      * @return the head of this queue, or <tt>null</tt> if this
@@ -180,20 +180,20 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      */
     public E poll() {
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock();                // 获取操作也是加锁了,这个DelayQueue能保证线程安全,都是通过加全局锁实现的,吞吐量肯定不会太高的
         try {
             E first = q.peek();
-            if (first == null || first.getDelay(TimeUnit.NANOSECONDS) > 0)
+            if (first == null || first.getDelay(TimeUnit.NANOSECONDS) > 0)  //当first为null,或者第一个还没超时,直接返回null; 这里的getDelay方法就是自定义的判断超时的方法.
                 return null;
             else
-                return q.poll();
+                return q.poll();    //否则返回第一个
         } finally {
             lock.unlock();
         }
     }
 
     /**
-     * Retrieves and removes the head of this queue, waiting if necessary
+     * Retrieves and removes the head of this queue, waiting if necessary   //一直等待,直到获取到超时的元素
      * until an element with an expired delay is available on this queue.
      *
      * @return the head of this queue
@@ -201,32 +201,32 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      */
     public E take() throws InterruptedException {
         final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
+        lock.lockInterruptibly();               //响应中断的锁
         try {
             for (;;) {
                 E first = q.peek();
                 if (first == null)
-                    available.await();
+                    available.await();          //等待被signal通知
                 else {
                     long delay = first.getDelay(TimeUnit.NANOSECONDS);
                     if (delay <= 0)
-                        return q.poll();
+                        return q.poll();        //发现超时元素直接返回
                     else if (leader != null)
                         available.await();
-                    else {
+                    else {                      //如果delay>0,并且leader为null,重新分配leader为当前线程
                         Thread thisThread = Thread.currentThread();
                         leader = thisThread;
                         try {
-                            available.awaitNanos(delay);
+                            available.awaitNanos(delay);    //当前线程等待delay时间,然后会继续for循环获取头元素
                         } finally {
-                            if (leader == thisThread)
+                            if (leader == thisThread)       //这时候释放leader权限; 刚才的leader线程肯定能获取到一个元素了
                                 leader = null;
                         }
                     }
                 }
             }
         } finally {
-            if (leader == null && q.peek() != null)
+            if (leader == null && q.peek() != null)         //队列中不为空,并且leader为null,则通知一个等待的线程
                 available.signal();
             lock.unlock();
         }
@@ -237,12 +237,12 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      * until an element with an expired delay is available on this queue,
      * or the specified wait time expires.
      *
-     * @return the head of this queue, or <tt>null</tt> if the
+     * @return the head of this queue, or <tt>null</tt> if the                  //和take操作有区别的就是,如果timeout时间内获取不到就返回null
      *         specified waiting time elapses before an element with
      *         an expired delay becomes available
      * @throws InterruptedException {@inheritDoc}
      */
-    public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public E poll(long timeout, TimeUnit unit) throws InterruptedException {    //这里的操作和take操作类似
         long nanos = unit.toNanos(timeout);
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();

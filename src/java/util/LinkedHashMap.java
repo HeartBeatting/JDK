@@ -154,7 +154,7 @@ public class LinkedHashMap<K,V>
     /**
      * The head of the doubly linked list.
      */
-    private transient Entry<K,V> header;
+    private transient Entry<K,V> header;    // 双向链表的头结点
 
     /**
      * The iteration ordering method for this linked hash map: <tt>true</tt>
@@ -237,9 +237,9 @@ public class LinkedHashMap<K,V>
      * the chain.
      */
     @Override
-    void init() {
-        header = new Entry<>(-1, null, null, null);
-        header.before = header.after = header;
+    void init() {   // init方法在hashmap构造成功后,还没放入数据前执行
+        header = new Entry<>(-1, null, null, null); // 初始化header, header就是个空的entry
+        header.before = header.after = header;                          // header的前驱和后继都指向自己
     }
 
     /**
@@ -248,7 +248,7 @@ public class LinkedHashMap<K,V>
      * faster to iterate using our linked list.
      */
     @Override
-    void transfer(HashMap.Entry[] newTable, boolean rehash) {
+    void transfer(HashMap.Entry[] newTable, boolean rehash) {           // 将newTable传到this中
         int newCapacity = newTable.length;
         for (Entry<K,V> e = header.after; e != header; e = e.after) {
             if (rehash)
@@ -291,17 +291,17 @@ public class LinkedHashMap<K,V>
      * key.equals(k))}, then this method returns {@code v}; otherwise
      * it returns {@code null}.  (There can be at most one such mapping.)
      *
-     * <p>A return value of {@code null} does not <i>necessarily</i>
-     * indicate that the map contains no mapping for the key; it's also
-     * possible that the map explicitly maps the key to {@code null}.
-     * The {@link #containsKey containsKey} operation may be used to
+     * <p>A return value of {@code null} does not <i>necessarily</i>    // 返回值为null
+     * indicate that the map contains no mapping for the key; it's also // 不一定代表key没有对应的值
+     * possible that the map explicitly maps the key to {@code null}.   // 可能对应的值就是null
+     * The {@link #containsKey containsKey} operation may be used to    // 可以用containsKey来区分
      * distinguish these two cases.
      */
     public V get(Object key) {
         Entry<K,V> e = (Entry<K,V>)getEntry(key);
         if (e == null)
             return null;
-        e.recordAccess(this);
+        e.recordAccess(this);   // Entry的record方法是干嘛的呢
         return e.value;
     }
 
@@ -310,15 +310,15 @@ public class LinkedHashMap<K,V>
      * The map will be empty after this call returns.
      */
     public void clear() {
-        super.clear();
-        header.before = header.after = header;
+        super.clear();                          // 先调用父类的clear方法,其实就是把父类的entry数组都设置为null.
+        header.before = header.after = header;  // 重置头指针
     }
 
     /**
      * LinkedHashMap entry.
      */
-    private static class Entry<K,V> extends HashMap.Entry<K,V> {
-        // These fields comprise the doubly linked list used for iteration.
+    private static class Entry<K,V> extends HashMap.Entry<K,V> {            // 这个也是覆盖的父类的
+        // These fields comprise the doubly linked list used for iteration. // 前驱和后继,用来遍历双向链表
         Entry<K,V> before, after;
 
         Entry(int hash, K key, V value, HashMap.Entry<K,V> next) {
@@ -328,7 +328,7 @@ public class LinkedHashMap<K,V>
         /**
          * Removes this entry from the linked list.
          */
-        private void remove() {
+        private void remove() {     // 删除当前的entry
             before.after = after;
             after.before = before;
         }
@@ -336,7 +336,7 @@ public class LinkedHashMap<K,V>
         /**
          * Inserts this entry before the specified existing entry in the list.
          */
-        private void addBefore(Entry<K,V> existingEntry) {
+        private void addBefore(Entry<K,V> existingEntry) {  // 添加一个entry到existingEntry之前
             after  = existingEntry;
             before = existingEntry.before;
             before.after = this;
@@ -344,17 +344,17 @@ public class LinkedHashMap<K,V>
         }
 
         /**
-         * This method is invoked by the superclass whenever the value
-         * of a pre-existing entry is read by Map.get or modified by Map.set.
-         * If the enclosing Map is access-ordered, it moves the entry
-         * to the end of the list; otherwise, it does nothing.
+         * This method is invoked by the superclass whenever the value          // 这个方法是用来被子类实现的
+         * of a pre-existing entry is read by Map.get or modified by Map.set.   // get方法读取一个已经存在的entry,或者set方法修改都会调用这个方法
+         * If the enclosing Map is access-ordered, it moves the entry           // 如果access-order开关打开了, 会把entry移到list的末尾
+         * to the end of the list; otherwise, it does nothing.          // 每次有访问,就添加到头部,这样最不常使用的就在末尾,可以用于实现LRU缓存
          */
         void recordAccess(HashMap<K,V> m) {
             LinkedHashMap<K,V> lm = (LinkedHashMap<K,V>)m;
-            if (lm.accessOrder) {
-                lm.modCount++;
-                remove();
-                addBefore(lm.header);
+            if (lm.accessOrder) {   // 判断开关有没有打开,默认是关闭
+                lm.modCount++;      // modCount是用来跟踪修改次数的,自动+1
+                remove();           // 删除当前entry
+                addBefore(lm.header);   // 添加到头部
             }
         }
 
@@ -363,94 +363,94 @@ public class LinkedHashMap<K,V>
         }
     }
 
-    private abstract class LinkedHashIterator<T> implements Iterator<T> {
-        Entry<K,V> nextEntry    = header.after;
-        Entry<K,V> lastReturned = null;
+    private abstract class LinkedHashIterator<T> implements Iterator<T> {   // 一个内部抽象类,用来实现LinkedHashMap的迭代器的,本类是私有的,但是接口是公共的.
+        Entry<K,V> nextEntry    = header.after;                             // nextEntry指向header的下一个
+        Entry<K,V> lastReturned = null;                                     // lastReturned初始指向null
 
         /**
          * The modCount value that the iterator believes that the backing
          * List should have.  If this expectation is violated, the iterator
          * has detected concurrent modification.
          */
-        int expectedModCount = modCount;
+        int expectedModCount = modCount;                                    // 缓存一份modCount,用来检测在遍历的时候,有没有被修改
 
-        public boolean hasNext() {
+        public boolean hasNext() {                                          // 实现Iterator的方法
             return nextEntry != header;
         }
 
         public void remove() {
-            if (lastReturned == null)
+            if (lastReturned == null)                           // 为null表示被删除了,不允许再次删除
                 throw new IllegalStateException();
-            if (modCount != expectedModCount)
+            if (modCount != expectedModCount)                   // 每次操作之前都会校验是否被修改的
                 throw new ConcurrentModificationException();
 
-            LinkedHashMap.this.remove(lastReturned.key);
-            lastReturned = null;
+            LinkedHashMap.this.remove(lastReturned.key);        // 根据当前的key进行删除
+            lastReturned = null;                                // 这个是控制多次删除的,null不允许再删除
             expectedModCount = modCount;
         }
 
         Entry<K,V> nextEntry() {
-            if (modCount != expectedModCount)
+            if (modCount != expectedModCount)                   // 迭代动作也会校验
                 throw new ConcurrentModificationException();
             if (nextEntry == header)
                 throw new NoSuchElementException();
 
-            Entry<K,V> e = lastReturned = nextEntry;
-            nextEntry = e.after;
+            Entry<K,V> e = lastReturned = nextEntry;            // lastReturned最新一次返回的,就是当前指向的节点
+            nextEntry = e.after;                                // nextEntry指向下一个
             return e;
         }
     }
 
-    private class KeyIterator extends LinkedHashIterator<K> {
+    private class KeyIterator extends LinkedHashIterator<K> {   // 实现了上面的抽象类
         public K next() { return nextEntry().getKey(); }
     }
 
-    private class ValueIterator extends LinkedHashIterator<V> {
+    private class ValueIterator extends LinkedHashIterator<V> { // 实现了上面的抽象类
         public V next() { return nextEntry().value; }
     }
 
-    private class EntryIterator extends LinkedHashIterator<Map.Entry<K,V>> {
+    private class EntryIterator extends LinkedHashIterator<Map.Entry<K,V>> {    // 实现了上面的抽象类.
         public Map.Entry<K,V> next() { return nextEntry(); }
     }
 
     // These Overrides alter the behavior of superclass view iterator() methods
-    Iterator<K> newKeyIterator()   { return new KeyIterator();   }
-    Iterator<V> newValueIterator() { return new ValueIterator(); }
-    Iterator<Map.Entry<K,V>> newEntryIterator() { return new EntryIterator(); }
+    Iterator<K> newKeyIterator()   { return new KeyIterator();   }              // 这几个方法覆盖了HashMap的方法. key的迭代器.
+    Iterator<V> newValueIterator() { return new ValueIterator(); }              // value的迭代器.
+    Iterator<Map.Entry<K,V>> newEntryIterator() { return new EntryIterator(); } // entry的迭代器.
 
     /**
-     * This override alters behavior of superclass put method. It causes newly
-     * allocated entry to get inserted at the end of the linked list and
-     * removes the eldest entry if appropriate.
+     * This override alters behavior of superclass put method. It causes newly  // 这个方法覆盖了父类的修改方法
+     * allocated entry to get inserted at the end of the linked list and        // 导致新分配的entry,插入到list的末尾
+     * removes the eldest entry if appropriate.                                 // 适当的时候会删除最老的entry
      */
     void addEntry(int hash, K key, V value, int bucketIndex) {
         super.addEntry(hash, key, value, bucketIndex);
 
         // Remove eldest entry if instructed
-        Entry<K,V> eldest = header.after;
-        if (removeEldestEntry(eldest)) {
-            removeEntryForKey(eldest.key);
+        Entry<K,V> eldest = header.after;   // header.after是最老的,最老被添加的节点
+        if (removeEldestEntry(eldest)) {    // 这个也是交给子类去实现的,用于判断是否删除最老的节点 (比如判断size大于多少就删除)
+            removeEntryForKey(eldest.key);  // 调用父类的方法删除key对应的entry
         }
     }
 
     /**
-     * This override differs from addEntry in that it doesn't resize the
-     * table or remove the eldest entry.
+     * This override differs from addEntry in that it doesn't resize the    // 和addEntry方法不同,它并不会resize或者删除最老的entry
+     * table or remove the eldest entry.                                    // 这块感觉要联系HashMap源码具体看下
      */
     void createEntry(int hash, K key, V value, int bucketIndex) {
-        HashMap.Entry<K,V> old = table[bucketIndex];
-        Entry<K,V> e = new Entry<>(hash, key, value, old);
-        table[bucketIndex] = e;
-        e.addBefore(header);
-        size++;
+        HashMap.Entry<K,V> old = table[bucketIndex];        // 这里是HashMap.Entry, 获取老的entry
+        Entry<K,V> e = new Entry<>(hash, key, value, old);  // 用新的Entry进行包装
+        table[bucketIndex] = e;                             // 替换以前的entry
+        e.addBefore(header);                                // 把e添加到header之前
+        size++;                                             // size++
     }
 
     /**
-     * Returns <tt>true</tt> if this map should remove its eldest entry.
-     * This method is invoked by <tt>put</tt> and <tt>putAll</tt> after
+     * Returns <tt>true</tt> if this map should remove its eldest entry.    //true会删除
+     * This method is invoked by <tt>put</tt> and <tt>putAll</tt> after     //put或者putAll放入entry会调用它
      * inserting a new entry into the map.  It provides the implementor
      * with the opportunity to remove the eldest entry each time a new one
-     * is added.  This is useful if the map represents a cache: it allows
+     * is added.  This is useful if the map represents a cache: it allows   // 当用map来做缓存时有用
      * the map to reduce memory consumption by deleting stale entries.
      *
      * <p>Sample use: this override will allow the map to grow up to 100
@@ -459,7 +459,7 @@ public class LinkedHashMap<K,V>
      * <pre>
      *     private static final int MAX_ENTRIES = 100;
      *
-     *     protected boolean removeEldestEntry(Map.Entry eldest) {
+     *     protected boolean removeEldestEntry(Map.Entry eldest) {          // 这个例子控制map上限是100
      *        return size() > MAX_ENTRIES;
      *     }
      * </pre>
@@ -469,7 +469,7 @@ public class LinkedHashMap<K,V>
      * return value.  It <i>is</i> permitted for this method to modify
      * the map directly, but if it does so, it <i>must</i> return
      * <tt>false</tt> (indicating that the map should not attempt any
-     * further modification).  The effects of returning <tt>true</tt>
+     * further modification).  The effects of returning <tt>true</tt>       // 影响
      * after modifying the map from within this method are unspecified.
      *
      * <p>This implementation merely returns <tt>false</tt> (so that this

@@ -3002,22 +3002,22 @@ public final class String
     }
 
     /**
-     * Returns a canonical representation for the string object.
+     * Returns a canonical representation for the string object.                // 返回一个标准代表字符串对象
      * <p>
-     * A pool of strings, initially empty, is maintained privately by the
+     * A pool of strings, initially empty, is maintained privately by the       // 一个字符串的对象池,初始是空的,由String类私有维护
      * class <code>String</code>.
      * <p>
-     * When the intern method is invoked, if the pool already contains a
+     * When the intern method is invoked, if the pool already contains a        // 当调用intern方法时,如果池中已经有一个string和当前string相等
      * string equal to this <code>String</code> object as determined by
-     * the {@link #equals(Object)} method, then the string from the pool is
-     * returned. Otherwise, this <code>String</code> object is added to the
-     * pool and a reference to this <code>String</code> object is returned.
+     * the {@link #equals(Object)} method, then the string from the pool is     // 则返回池中的String对象
+     * returned. Otherwise, this <code>String</code> object is added to the     // 否则将String对象加入到对象池中
+     * pool and a reference to this <code>String</code> object is returned.     // 然后返回当前String对象的引用
      * <p>
-     * It follows that for any two strings <code>s</code> and <code>t</code>,
-     * <code>s.intern()&nbsp;==&nbsp;t.intern()</code> is <code>true</code>
+     * It follows that for any two strings <code>s</code> and <code>t</code>,   // 如果s.intern() == t.intern()
+     * <code>s.intern()&nbsp;==&nbsp;t.intern()</code> is <code>true</code>     // 当且仅当s equals t
      * if and only if <code>s.equals(t)</code> is <code>true</code>.
      * <p>
-     * All literal strings and string-valued constant expressions are
+     * All literal strings and string-valued constant expressions are           // 所有字符串和字符串常量表达式都native本地代码内部维护
      * interned. String literals are defined in section 3.10.5 of the
      * <cite>The Java&trade; Language Specification</cite>.
      *

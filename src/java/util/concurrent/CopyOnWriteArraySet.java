@@ -90,8 +90,8 @@ public class CopyOnWriteArraySet<E> extends AbstractSet<E>
         implements java.io.Serializable {
     private static final long serialVersionUID = 5457747651344034263L;
 
-    private final CopyOnWriteArrayList<E> al;
-
+    private final CopyOnWriteArrayList<E> al;   // CopyOnWriteArraySet 内部是基于CopyOnWriteArrayList来做的.
+                                                // 写操作都是不允许放入重复对象的.
     /**
      * Creates an empty set.
      */

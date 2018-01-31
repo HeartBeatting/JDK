@@ -46,54 +46,54 @@ import java.util.*;
  * flexibility or capabilities of {@link ThreadPoolExecutor} (which
  * this class extends) are required.
  *
- * <p>Delayed tasks execute no sooner than they are enabled, but
- * without any real-time guarantees about when, after they are
- * enabled, they will commence. Tasks scheduled for exactly the same
- * execution time are enabled in first-in-first-out (FIFO) order of
+ * <p>Delayed tasks execute no sooner than they are enabled, but        // 延时任务不会早于定的延时时间
+ * without any real-time guarantees about when, after they are          // 实时性没有精确的保证
+ * enabled, they will commence. Tasks scheduled for exactly the same    // 在他们被激活后,他们才将执行
+ * execution time are enabled in first-in-first-out (FIFO) order of     // 同一时间执行的任务,策略是先进先出,也就是先进先执行
  * submission.
  *
- * <p>When a submitted task is cancelled before it is run, execution
+ * <p>When a submitted task is cancelled before it is run, execution    // 已经提交的任务被取消, 会禁止执行
  * is suppressed. By default, such a cancelled task is not
- * automatically removed from the work queue until its delay
- * elapses. While this enables further inspection and monitoring, it
+ * automatically removed from the work queue until its delay            // 任务在超时时间到了才会被删除
+ * elapses. While this enables further inspection and monitoring, it    // 取消的任务太多,占用没有上限的
  * may also cause unbounded retention of cancelled tasks. To avoid
- * this, set {@link #setRemoveOnCancelPolicy} to {@code true}, which
- * causes tasks to be immediately removed from the work queue at
+ * this, set {@link #setRemoveOnCancelPolicy} to {@code true}, which    // setRemoveOnCancelPolicy设置为true
+ * causes tasks to be immediately removed from the work queue at        // 取消任务的时候,会立即删除任务
  * time of cancellation.
  *
- * <p>Successive executions of a task scheduled via
- * {@code scheduleAtFixedRate} or
+ * <p>Successive executions of a task scheduled via                     // 通过scheduleAtFixedRate或者scheduleWithFixedDelay
+ * {@code scheduleAtFixedRate} or                                       // 连续执行一个任务, 不会重叠 (意思就是前一次没有执行完,即使时间到了也不会触发)
  * {@code scheduleWithFixedDelay} do not overlap. While different
- * executions may be performed by different threads, the effects of
- * prior executions <a
- * href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>
+ * executions may be performed by different threads, the effects of     // 不同的线程执行不同的操作
+ * prior executions <a                                                  // 先执行的对后执行的保证可见性
+ * href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>    // 遵循happen-before
  * those of subsequent ones.
  *
- * <p>While this class inherits from {@link ThreadPoolExecutor}, a few
- * of the inherited tuning methods are not useful for it. In
- * particular, because it acts as a fixed-sized pool using
+ * <p>While this class inherits from {@link ThreadPoolExecutor}, a few  // 因为这个类是继承了ThreadPoolExecutor
+ * of the inherited tuning methods are not useful for it. In            // 有些方法不适合它
+ * particular, because it acts as a fixed-sized pool using              // 特殊的,因为它就像一个固定大小的线程池,队列无限
  * {@code corePoolSize} threads and an unbounded queue, adjustments
  * to {@code maximumPoolSize} have no useful effect. Additionally, it
- * is almost never a good idea to set {@code corePoolSize} to zero or
- * use {@code allowCoreThreadTimeOut} because this may leave the pool
+ * is almost never a good idea to set {@code corePoolSize} to zero or   // 不建议设置核心线程为0或者allowCoreThreadTimeOut
+ * use {@code allowCoreThreadTimeOut} because this may leave the pool   // 这会导致线程池没有线程处理任务
  * without threads to handle tasks once they become eligible to run.
  *
  * <p><b>Extension notes:</b> This class overrides the
  * {@link ThreadPoolExecutor#execute execute} and
  * {@link AbstractExecutorService#submit(Runnable) submit}
- * methods to generate internal {@link ScheduledFuture} objects to
+ * methods to generate internal {@link ScheduledFuture} objects to      // 重写了几个方法来控制每个任务的延时执行和定时执行
  * control per-task delays and scheduling.  To preserve
- * functionality, any further overrides of these methods in
- * subclasses must invoke superclass versions, which effectively
+ * functionality, any further overrides of these methods in             // 如果需要重写此类的这些方法,必须调用父类的
+ * subclasses must invoke superclass versions, which effectively        // 能有效的禁止不必要的任务执行
  * disables additional task customization.  However, this class
- * provides alternative protected extension method
- * {@code decorateTask} (one version each for {@code Runnable} and
+ * provides alternative protected extension method                      // 然而, 这个类提供了可选择的protected方法
+ * {@code decorateTask} (one version each for {@code Runnable} and      // decorateTask方法
  * {@code Callable}) that can be used to customize the concrete task
  * types used to execute commands entered via {@code execute},
  * {@code submit}, {@code schedule}, {@code scheduleAtFixedRate},
  * and {@code scheduleWithFixedDelay}.  By default, a
  * {@code ScheduledThreadPoolExecutor} uses a task type extending
- * {@link FutureTask}. However, this may be modified or replaced using
+ * {@link FutureTask}. However, this may be modified or replaced using  // 下面举个例子,怎么使用decorateTask方法
  * subclasses of the form:
  *
  *  <pre> {@code
@@ -116,57 +116,57 @@ import java.util.*;
  * @since 1.5
  * @author Doug Lea
  */
-public class ScheduledThreadPoolExecutor
+public class ScheduledThreadPoolExecutor                            // 延时任务是通过优先级队列实现的, 通过超时时间计算优先级.
         extends ThreadPoolExecutor
         implements ScheduledExecutorService {
 
     /*
      * This class specializes ThreadPoolExecutor implementation by
      *
-     * 1. Using a custom task type, ScheduledFutureTask for
-     *    tasks, even those that don't require scheduling (i.e.,
+     * 1. Using a custom task type, ScheduledFutureTask for         // 专门定义了一个ScheduledFutureTask
+     *    tasks, even those that don't require scheduling (i.e.,    // 不需要定时的也会使用这个task
      *    those submitted using ExecutorService execute, not
-     *    ScheduledExecutorService methods) which are treated as
+     *    ScheduledExecutorService methods) which are treated as    // 不是延时任务的,会作为延时为0的任务对待.
      *    delayed tasks with a delay of zero.
      *
-     * 2. Using a custom queue (DelayedWorkQueue), a variant of
-     *    unbounded DelayQueue. The lack of capacity constraint and
-     *    the fact that corePoolSize and maximumPoolSize are
+     * 2. Using a custom queue (DelayedWorkQueue), a variant of     // 使用了一个一般的延时工作队列, DelayedWorkQueue.
+     *    unbounded DelayQueue. The lack of capacity constraint and // 队列没有上限
+     *    the fact that corePoolSize and maximumPoolSize are        // 核心线程数和最大线程数设置为相同, 简化了一些执行机制
      *    effectively identical simplifies some execution mechanics
-     *    (see delayedExecute) compared to ThreadPoolExecutor.
+     *    (see delayedExecute) compared to ThreadPoolExecutor.      // 见delayedExecute方法
      *
-     * 3. Supporting optional run-after-shutdown parameters, which
-     *    leads to overrides of shutdown methods to remove and cancel
+     * 3. Supporting optional run-after-shutdown parameters, which      // 支持可选的 run-after-shutdown 参数
+     *    leads to overrides of shutdown methods to remove and cancel   // 重写了shutdown方法
      *    tasks that should NOT be run after shutdown, as well as
      *    different recheck logic when task (re)submission overlaps
      *    with a shutdown.
      *
-     * 4. Task decoration methods to allow interception and
+     * 4. Task decoration methods to allow interception and             // task装饰方法用于拦截和监控
      *    instrumentation, which are needed because subclasses cannot
      *    otherwise override submit methods to get this effect. These
      *    don't have any impact on pool control logic though.
      */
 
     /**
-     * False if should cancel/suppress periodic tasks on shutdown.
+     * False if should cancel/suppress periodic tasks on shutdown.          // 周期任务
      */
-    private volatile boolean continueExistingPeriodicTasksAfterShutdown;
+    private volatile boolean continueExistingPeriodicTasksAfterShutdown;    // 在shutdown之后是否继续执行任务
 
     /**
-     * False if should cancel non-periodic tasks on shutdown.
+     * False if should cancel non-periodic tasks on shutdown.               // 非周期任务,也就是延时任务
      */
-    private volatile boolean executeExistingDelayedTasksAfterShutdown = true;
+    private volatile boolean executeExistingDelayedTasksAfterShutdown = true;// 是否应该取消
 
     /**
      * True if ScheduledFutureTask.cancel should remove from queue
      */
-    private volatile boolean removeOnCancel = false;
+    private volatile boolean removeOnCancel = false;                        // 取消后是否从任务队列中删除
 
     /**
      * Sequence number to break scheduling ties, and in turn to
      * guarantee FIFO order among tied entries.
      */
-    private static final AtomicLong sequencer = new AtomicLong(0);
+    private static final AtomicLong sequencer = new AtomicLong(0);  // 用于保证FIFO顺序
 
     /**
      * Returns current nanosecond time.
@@ -181,22 +181,22 @@ public class ScheduledThreadPoolExecutor
         /** Sequence number to break ties FIFO */
         private final long sequenceNumber;
 
-        /** The time the task is enabled to execute in nanoTime units */
+        /** The time the task is enabled to execute in nanoTime units */    // 定时执行任务的时间点
         private long time;
 
         /**
-         * Period in nanoseconds for repeating tasks.  A positive
-         * value indicates fixed-rate execution.  A negative value
-         * indicates fixed-delay execution.  A value of 0 indicates a
+         * Period in nanoseconds for repeating tasks.  A positive           // 正数表示固定速率的执行
+         * value indicates fixed-rate execution.  A negative value          // 负数表示固定的延时执行
+         * indicates fixed-delay execution.  A value of 0 indicates a       // 0表示非重复执行的任务
          * non-repeating task.
          */
         private final long period;
 
-        /** The actual task to be re-enqueued by reExecutePeriodic */
+        /** The actual task to be re-enqueued by reExecutePeriodic */       // 需要重新入队的真正的任务
         RunnableScheduledFuture<V> outerTask = this;
 
         /**
-         * Index into delay queue, to support faster cancellation.
+         * Index into delay queue, to support faster cancellation.          // 用于快速取消
          */
         int heapIndex;
 
@@ -207,7 +207,7 @@ public class ScheduledThreadPoolExecutor
             super(r, result);
             this.time = ns;
             this.period = 0;
-            this.sequenceNumber = sequencer.getAndIncrement();
+            this.sequenceNumber = sequencer.getAndIncrement();  // 这里没有考虑整形溢出的问题,溢出了自然会变成负数
         }
 
         /**
@@ -234,17 +234,17 @@ public class ScheduledThreadPoolExecutor
             return unit.convert(time - now(), TimeUnit.NANOSECONDS);
         }
 
-        public int compareTo(Delayed other) {
+        public int compareTo(Delayed other) {               // 实现了compareTo方法,用于比较任务的优先级
             if (other == this) // compare zero ONLY if same object
                 return 0;
-            if (other instanceof ScheduledFutureTask) {
+            if (other instanceof ScheduledFutureTask) {     // 判断是ScheduledFutureTask
                 ScheduledFutureTask<?> x = (ScheduledFutureTask<?>)other;
-                long diff = time - x.time;
+                long diff = time - x.time;                  // 先比较超时时间
                 if (diff < 0)
                     return -1;
                 else if (diff > 0)
                     return 1;
-                else if (sequenceNumber < x.sequenceNumber)
+                else if (sequenceNumber < x.sequenceNumber) // 如果超时时间一致, 就比较sequenceNumber,保证FIFO
                     return -1;
                 else
                     return 1;
@@ -266,16 +266,16 @@ public class ScheduledThreadPoolExecutor
         /**
          * Sets the next time to run for a periodic task.
          */
-        private void setNextRunTime() {
+        private void setNextRunTime() {     // 设置下一次执行时间, 用于循环任务计算下一次执行时间.
             long p = period;
             if (p > 0)
-                time += p;
+                time += p;                  // p大于0表示循环时间
             else
-                time = triggerTime(-p);
+                time = triggerTime(-p);     // 小于0表示延时时间
         }
 
         public boolean cancel(boolean mayInterruptIfRunning) {
-            boolean cancelled = super.cancel(mayInterruptIfRunning);
+            boolean cancelled = super.cancel(mayInterruptIfRunning);    // 取消任务
             if (cancelled && removeOnCancel && heapIndex >= 0)
                 remove(this);
             return cancelled;
@@ -285,7 +285,7 @@ public class ScheduledThreadPoolExecutor
          * Overrides FutureTask version so as to reset/requeue if periodic.
          */
         public void run() {
-            boolean periodic = isPeriodic();
+            boolean periodic = isPeriodic();    // 就是period等于0就表示不是循环任务
             if (!canRunInCurrentRunState(periodic))
                 cancel(false);
             else if (!periodic)
@@ -305,32 +305,32 @@ public class ScheduledThreadPoolExecutor
      */
     boolean canRunInCurrentRunState(boolean periodic) {
         return isRunningOrShutdown(periodic ?
-                                   continueExistingPeriodicTasksAfterShutdown :
-                                   executeExistingDelayedTasksAfterShutdown);
+                                   continueExistingPeriodicTasksAfterShutdown : // 周期任务, continue...默认false,也就是关闭的时候默认取消任务并删除
+                                   executeExistingDelayedTasksAfterShutdown);   // 定时任务, execute...也是默认false,关闭时默认取消并删除队列中任务
     }
 
     /**
-     * Main execution method for delayed or periodic tasks.  If pool
-     * is shut down, rejects the task. Otherwise adds task to queue
-     * and starts a thread, if necessary, to run it.  (We cannot
-     * prestart the thread to run the task because the task (probably)
-     * shouldn't be run yet,) If the pool is shut down while the task
-     * is being added, cancel and remove it if required by state and
+     * Main execution method for delayed or periodic tasks.  If pool    // 主方法,用于执行延时或者周期任务
+     * is shut down, rejects the task. Otherwise adds task to queue     // 如果线程池关闭了,直接拒绝任务
+     * and starts a thread, if necessary, to run it.  (We cannot        // 否则添加任务到队列中,并且启动一个线程(有必要的话:小于核心线程)
+     * prestart the thread to run the task because the task (probably)  // 我们不能直接执行这个线程,因为可能还没到执行时间
+     * shouldn't be run yet,) If the pool is shut down while the task   // 如果在任务添加的过程中,线程池关闭了
+     * is being added, cancel and remove it if required by state and    // 根据参数判断是否取消和删除任务
      * run-after-shutdown parameters.
      *
      * @param task the task
      */
     private void delayedExecute(RunnableScheduledFuture<?> task) {
         if (isShutdown())
-            reject(task);
+            reject(task);                   // 线程池已经关闭了, 则拒绝任务.
         else {
-            super.getQueue().add(task);
-            if (isShutdown() &&
+            super.getQueue().add(task);     // 如果是周期任务,加入进行会周期执行的
+            if (isShutdown() &&             // 再判断一次,有没有关闭线程池
                 !canRunInCurrentRunState(task.isPeriodic()) &&
                 remove(task))
                 task.cancel(false);
             else
-                ensurePrestart();
+                ensurePrestart();           // 判断线程池线程数是否小于核心线程, 小于则进行扩容.
         }
     }
 
@@ -340,8 +340,8 @@ public class ScheduledThreadPoolExecutor
      *
      * @param task the task
      */
-    void reExecutePeriodic(RunnableScheduledFuture<?> task) {
-        if (canRunInCurrentRunState(true)) {
+    void reExecutePeriodic(RunnableScheduledFuture<?> task) {   // 循环周期性的执行
+        if (canRunInCurrentRunState(true)) {             //判断当前的线程池状态是否可以执行
             super.getQueue().add(task);
             if (!canRunInCurrentRunState(true) && remove(task))
                 task.cancel(false);
@@ -351,8 +351,8 @@ public class ScheduledThreadPoolExecutor
     }
 
     /**
-     * Cancels and clears the queue of all tasks that should not be run
-     * due to shutdown policy.  Invoked within super.shutdown.
+     * Cancels and clears the queue of all tasks that should not be run // 重写了父类的方法: 取消并且清理队列中所有的不需要执行的任务 (根据shutdown的策略)
+     * due to shutdown policy.  Invoked within super.shutdown.          // 是shutdownNow还是shutdown
      */
     @Override void onShutdown() {
         BlockingQueue<Runnable> q = super.getQueue();
@@ -360,14 +360,14 @@ public class ScheduledThreadPoolExecutor
             getExecuteExistingDelayedTasksAfterShutdownPolicy();
         boolean keepPeriodic =
             getContinueExistingPeriodicTasksAfterShutdownPolicy();
-        if (!keepDelayed && !keepPeriodic) {
+        if (!keepDelayed && !keepPeriodic) {                // 都为false,取消所有任务
             for (Object e : q.toArray())
                 if (e instanceof RunnableScheduledFuture<?>)
                     ((RunnableScheduledFuture<?>) e).cancel(false);
             q.clear();
         }
         else {
-            // Traverse snapshot to avoid iterator exceptions
+            // Traverse snapshot to avoid iterator exceptions   // 否则,遍历快照避免iterator异常
             for (Object e : q.toArray()) {
                 if (e instanceof RunnableScheduledFuture) {
                     RunnableScheduledFuture<?> t =
@@ -384,10 +384,10 @@ public class ScheduledThreadPoolExecutor
     }
 
     /**
-     * Modifies or replaces the task used to execute a runnable.
-     * This method can be used to override the concrete
+     * Modifies or replaces the task used to execute a runnable.    // 可以用来修改或者替换task
+     * This method can be used to override the concrete             // 可以用于重写父类,用于管理内部的task
      * class used for managing internal tasks.
-     * The default implementation simply returns the given task.
+     * The default implementation simply returns the given task.    // 默认实现直接返回原来的task
      *
      * @param runnable the submitted Runnable
      * @param task the task created to execute the runnable
@@ -411,7 +411,7 @@ public class ScheduledThreadPoolExecutor
      * @since 1.6
      */
     protected <V> RunnableScheduledFuture<V> decorateTask(
-        Callable<V> callable, RunnableScheduledFuture<V> task) {
+        Callable<V> callable, RunnableScheduledFuture<V> task) {    // 这个入参是callable
         return task;
     }
 
@@ -425,7 +425,7 @@ public class ScheduledThreadPoolExecutor
      */
     public ScheduledThreadPoolExecutor(int corePoolSize) {
         super(corePoolSize, Integer.MAX_VALUE, 0, TimeUnit.NANOSECONDS,
-              new DelayedWorkQueue());
+              new DelayedWorkQueue());  // 默认是一个没有上限的延时队列
     }
 
     /**
@@ -487,30 +487,30 @@ public class ScheduledThreadPoolExecutor
      * Returns the trigger time of a delayed action.
      */
     private long triggerTime(long delay, TimeUnit unit) {
-        return triggerTime(unit.toNanos((delay < 0) ? 0 : delay));
+        return triggerTime(unit.toNanos((delay < 0) ? 0 : delay));  // 最终将时间单位都转化为纳秒,因为LockSupport中都是纳秒
     }
 
     /**
      * Returns the trigger time of a delayed action.
      */
-    long triggerTime(long delay) {
+    long triggerTime(long delay) {  // 根据延时delay, 计算触发的时间
         return now() +
-            ((delay < (Long.MAX_VALUE >> 1)) ? delay : overflowFree(delay));
+            ((delay < (Long.MAX_VALUE >> 1)) ? delay : overflowFree(delay));    // 如果delay大于了Long.MAX_VALUE >> 1, 直接返回overflowFree
     }
 
     /**
-     * Constrains the values of all delays in the queue to be within
-     * Long.MAX_VALUE of each other, to avoid overflow in compareTo.
-     * This may occur if a task is eligible to be dequeued, but has
-     * not yet been, while some other task is added with a delay of
+     * Constrains the values of all delays in the queue to be within    // 约束队列中所有的延时
+     * Long.MAX_VALUE of each other, to avoid overflow in compareTo.    // 避免在compareTo方法中数值溢出
+     * This may occur if a task is eligible to be dequeued, but has     // 这可能发生在一个任务适合出队,但是还没有到时间,这时候相减溢出了就是负数
+     * not yet been, while some other task is added with a delay of     // 这是一个其他任务被添加进来,delay是Long.MAX_VALUE
      * Long.MAX_VALUE.
      */
     private long overflowFree(long delay) {
         Delayed head = (Delayed) super.getQueue().peek();
         if (head != null) {
-            long headDelay = head.getDelay(TimeUnit.NANOSECONDS);
-            if (headDelay < 0 && (delay - headDelay < 0))
-                delay = Long.MAX_VALUE + headDelay;
+            long headDelay = head.getDelay(TimeUnit.NANOSECONDS);       // getDelay是获取剩余的超时时间
+            if (headDelay < 0 && (delay - headDelay < 0))               // 这说明发生溢出了
+                delay = Long.MAX_VALUE + headDelay;                     // delay = Long.MAX_VALUE + headDelay, 但是这样还是溢出啊, 没有问题吗?
         }
         return delay;
     }
@@ -524,10 +524,10 @@ public class ScheduledThreadPoolExecutor
                                        TimeUnit unit) {
         if (command == null || unit == null)
             throw new NullPointerException();
-        RunnableScheduledFuture<?> t = decorateTask(command,
+        RunnableScheduledFuture<?> t = decorateTask(command,            // 新建一个Future,调用可重写的decorateTask方法
             new ScheduledFutureTask<Void>(command, null,
-                                          triggerTime(delay, unit)));
-        delayedExecute(t);
+                                          triggerTime(delay, unit)));   // 计算触发时间
+        delayedExecute(t);                                              // 延时执行, 这里schedule都是定时任务,只执行一次的,不是周期任务
         return t;
     }
 
@@ -563,7 +563,7 @@ public class ScheduledThreadPoolExecutor
         ScheduledFutureTask<Void> sft =
             new ScheduledFutureTask<Void>(command,
                                           null,
-                                          triggerTime(initialDelay, unit),
+                                          triggerTime(initialDelay, unit),  // 计算第一次执行的时间点
                                           unit.toNanos(period));
         RunnableScheduledFuture<Void> t = decorateTask(command, sft);
         sft.outerTask = t;
@@ -657,7 +657,7 @@ public class ScheduledThreadPoolExecutor
      * @param value if {@code true}, continue after shutdown, else don't.
      * @see #getContinueExistingPeriodicTasksAfterShutdownPolicy
      */
-    public void setContinueExistingPeriodicTasksAfterShutdownPolicy(boolean value) {
+    public void setContinueExistingPeriodicTasksAfterShutdownPolicy(boolean value) {    // 设置变量为true, 可以关闭, 这种可以实现优雅关闭?
         continueExistingPeriodicTasksAfterShutdown = value;
         if (!value && isShutdown())
             onShutdown();
@@ -665,8 +665,8 @@ public class ScheduledThreadPoolExecutor
 
     /**
      * Gets the policy on whether to continue executing existing
-     * periodic tasks even when this executor has been {@code shutdown}.
-     * In this case, these tasks will only terminate upon
+     * periodic tasks even when this executor has been {@code shutdown}.    // 当executor已经被关闭了,是否继续执行周期任务
+     * In this case, these tasks will only terminate upon                   // 这些任务只有调用shutdownNow 或者 设置策略为false
      * {@code shutdownNow} or after setting the policy to
      * {@code false} when already shutdown.
      * This value is by default {@code false}.
@@ -711,8 +711,8 @@ public class ScheduledThreadPoolExecutor
     }
 
     /**
-     * Sets the policy on whether cancelled tasks should be immediately
-     * removed from the work queue at time of cancellation.  This value is
+     * Sets the policy on whether cancelled tasks should be immediately     // 是否立即删除取消的任务
+     * removed from the work queue at time of cancellation.  This value is  // 默认false
      * by default {@code false}.
      *
      * @param value if {@code true}, remove on cancellation, else don't
@@ -738,25 +738,25 @@ public class ScheduledThreadPoolExecutor
     }
 
     /**
-     * Initiates an orderly shutdown in which previously submitted
-     * tasks are executed, but no new tasks will be accepted.
-     * Invocation has no additional effect if already shut down.
+     * Initiates an orderly shutdown in which previously submitted          // 表示有序的关闭
+     * tasks are executed, but no new tasks will be accepted.               // 前面提交的任务允许继续执行
+     * Invocation has no additional effect if already shut down.            // 但是不允许接收新的任务
      *
-     * <p>This method does not wait for previously submitted tasks to
-     * complete execution.  Use {@link #awaitTermination awaitTermination}
+     * <p>This method does not wait for previously submitted tasks to       // 这个方法不会等待前面提交的任务执行完成
+     * complete execution.  Use {@link #awaitTermination awaitTermination}  // 等待可以使用awaitTermination
      * to do that.
      *
-     * <p>If the {@code ExecuteExistingDelayedTasksAfterShutdownPolicy}
-     * has been set {@code false}, existing delayed tasks whose delays
+     * <p>If the {@code ExecuteExistingDelayedTasksAfterShutdownPolicy}     // 如果参数被设置为false
+     * has been set {@code false}, existing delayed tasks whose delays      // 队列中的延时任务还没超时的会被取消
      * have not yet elapsed are cancelled.  And unless the {@code
-     * ContinueExistingPeriodicTasksAfterShutdownPolicy} has been set
-     * {@code true}, future executions of existing periodic tasks will
+     * ContinueExistingPeriodicTasksAfterShutdownPolicy} has been set       // 除非这个参数被设置为true
+     * {@code true}, future executions of existing periodic tasks will      // 否则存在的定时任务会被取消
      * be cancelled.
      *
      * @throws SecurityException {@inheritDoc}
      */
     public void shutdown() {
-        super.shutdown();
+        super.shutdown();   // 这种shutDown会等到延时任务(非周期任务)执行完毕后才会关闭线程池
     }
 
     /**
@@ -771,7 +771,7 @@ public class ScheduledThreadPoolExecutor
      * <p>There are no guarantees beyond best-effort attempts to stop
      * processing actively executing tasks.  This implementation
      * cancels tasks via {@link Thread#interrupt}, so any task that
-     * fails to respond to interrupts may never terminate.
+     * fails to respond to interrupts may never terminate.              // 任务不响应中断, 线程池就永远没法关闭!
      *
      * @return list of tasks that never commenced execution.
      *         Each element of this list is a {@link ScheduledFuture},
@@ -804,51 +804,51 @@ public class ScheduledThreadPoolExecutor
      * class must be declared as a BlockingQueue<Runnable> even though
      * it can only hold RunnableScheduledFutures.
      */
-    static class DelayedWorkQueue extends AbstractQueue<Runnable>
+    static class DelayedWorkQueue extends AbstractQueue<Runnable>       // 这是一个线程安全的队列
         implements BlockingQueue<Runnable> {
 
         /*
-         * A DelayedWorkQueue is based on a heap-based data structure
-         * like those in DelayQueue and PriorityQueue, except that
-         * every ScheduledFutureTask also records its index into the
-         * heap array. This eliminates the need to find a task upon
-         * cancellation, greatly speeding up removal (down from O(n)
-         * to O(log n)), and reducing garbage retention that would
+         * A DelayedWorkQueue is based on a heap-based data structure   // DelayedWorkQueue基于堆结构的数据结构
+         * like those in DelayQueue and PriorityQueue, except that      // 类似DelayQueue 和 PriorityQueue
+         * every ScheduledFutureTask also records its index into the    // 特殊的是,每个ScheduledFutureTask记录了array中的index
+         * heap array. This eliminates the need to find a task upon     // 取消任务的时候,可以找到task
+         * cancellation, greatly speeding up removal (down from O(n)    // 极大的提升了removal操作的效率
+         * to O(log n)), and reducing garbage retention that would      // 减少了gc滞留
          * otherwise occur by waiting for the element to rise to top
-         * before clearing. But because the queue may also hold
+         * before clearing. But because the queue may also hold         // queue也可能保持RunnableScheduledFutures,并不是ScheduledFutureTasks
          * RunnableScheduledFutures that are not ScheduledFutureTasks,
          * we are not guaranteed to have such indices available, in
-         * which case we fall back to linear search. (We expect that
-         * most tasks will not be decorated, and that the faster cases
+         * which case we fall back to linear search. (We expect that    // 从后开始线性查找
+         * most tasks will not be decorated, and that the faster cases  // 我们希望大部分的task不被装饰
          * will be much more common.)
          *
-         * All heap operations must record index changes -- mainly
-         * within siftUp and siftDown. Upon removal, a task's
-         * heapIndex is set to -1. Note that ScheduledFutureTasks can
-         * appear at most once in the queue (this need not be true for
+         * All heap operations must record index changes -- mainly      // 所有的堆操作,必须记录index的变化
+         * within siftUp and siftDown. Upon removal, a task's           // 主要通过siftUp 和 siftDown
+         * heapIndex is set to -1. Note that ScheduledFutureTasks can   // 一旦删除, task的heapIndex被设置为-1
+         * appear at most once in the queue (this need not be true for  // 注意到ScheduledFutureTasks只会在queue中出现一次
          * other kinds of tasks or work queues), so are uniquely
          * identified by heapIndex.
          */
 
         private static final int INITIAL_CAPACITY = 16;
         private RunnableScheduledFuture[] queue =
-            new RunnableScheduledFuture[INITIAL_CAPACITY];
+            new RunnableScheduledFuture[INITIAL_CAPACITY];      // 默认队列queue的容量是16
         private final ReentrantLock lock = new ReentrantLock();
         private int size = 0;
 
         /**
-         * Thread designated to wait for the task at the head of the
-         * queue.  This variant of the Leader-Follower pattern
-         * (http://www.cs.wustl.edu/~schmidt/POSA/POSA2/) serves to
-         * minimize unnecessary timed waiting.  When a thread becomes
+         * Thread designated to wait for the task at the head of the    // 线程在队列的头部等待获取任务
+         * queue.  This variant of the Leader-Follower pattern          // Leader-Follower模式 (这种模式就)
+         * (http://www.cs.wustl.edu/~schmidt/POSA/POSA2/) serves to     // 用于最小化不必要的等待
+         * minimize unnecessary timed waiting.  When a thread becomes   // 当一个线程变成了leader,它会一直等待,直到下一个任务到时间了
          * the leader, it waits only for the next delay to elapse, but
-         * other threads await indefinitely.  The leader thread must
-         * signal some other thread before returning from take() or
-         * poll(...), unless some other thread becomes leader in the
-         * interim.  Whenever the head of the queue is replaced with a
-         * task with an earlier expiration time, the leader field is
+         * other threads await indefinitely.  The leader thread must    // 其他线程无限期的等待
+         * signal some other thread before returning from take() or     // take或poll操作必须通知其他线程
+         * poll(...), unless some other thread becomes leader in the    // 除非其他线程变成了leader
+         * interim.  Whenever the head of the queue is replaced with a  // 任何时候queue的头被替换成了一个更早超时的任务
+         * task with an earlier expiration time, the leader field is    // leader field被设置成null,表示无效
          * invalidated by being reset to null, and some waiting
-         * thread, but not necessarily the current leader, is
+         * thread, but not necessarily the current leader, is           // 某个等待的线程被通知
          * signalled.  So waiting threads must be prepared to acquire
          * and lose leadership while waiting.
          */
@@ -863,7 +863,7 @@ public class ScheduledThreadPoolExecutor
         /**
          * Set f's heapIndex if it is a ScheduledFutureTask.
          */
-        private void setIndex(RunnableScheduledFuture f, int idx) {
+        private void setIndex(RunnableScheduledFuture f, int idx) {     // 与DelayQueue 和 PriorityBlockingQueue不同的是, 这里的内部类需要维护index.
             if (f instanceof ScheduledFutureTask)
                 ((ScheduledFutureTask)f).heapIndex = idx;
         }

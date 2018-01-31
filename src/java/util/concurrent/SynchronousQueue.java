@@ -40,9 +40,9 @@ import java.util.concurrent.atomic.*;
 import java.util.*;
 
 /**
- * A {@linkplain BlockingQueue blocking queue} in which each insert
- * operation must wait for a corresponding remove operation by another
- * thread, and vice versa.  A synchronous queue does not have any
+ * A {@linkplain BlockingQueue blocking queue} in which each insert         // 这一段就是介绍这个特别的阻塞队列
+ * operation must wait for a corresponding remove operation by another      // 队列一般都是对应的生产者和消费者
+ * thread, and vice versa.  A synchronous queue does not have any           // 这个队列生产者必须在有消费者线程等待时才会放入任务成功.
  * internal capacity, not even a capacity of one.  You cannot
  * <tt>peek</tt> at a synchronous queue because an element is only
  * present when you try to remove it; you cannot insert an element
@@ -56,8 +56,8 @@ import java.util.*;
  * <tt>SynchronousQueue</tt> acts as an empty collection.  This queue
  * does not permit <tt>null</tt> elements.
  *
- * <p>Synchronous queues are similar to rendezvous channels used in
- * CSP and Ada. They are well suited for handoff designs, in which an
+ * <p>Synchronous queues are similar to rendezvous channels used in     // 约会
+ * CSP and Ada. They are well suited for handoff designs, in which an   // 适合手递手的设计
  * object running in one thread must sync up with an object running
  * in another thread in order to hand it some information, event, or
  * task.
@@ -83,9 +83,9 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     implements BlockingQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -3223113410248163686L;
 
-    /*  SynchronousQueue jdk 1.6 是基于链表和自旋+LockSupport实现的,当锁的粒度比较小并且很频繁时比较适合使用
-     * This class implements extensions of the dual stack and dual
-     * queue algorithms described in "Nonblocking Concurrent Objects
+    /*
+     * This class implements extensions of the dual stack and dual      // SynchronousQueue jdk 1.6 是基于链表和自旋+LockSupport实现的,
+     * queue algorithms described in "Nonblocking Concurrent Objects    // 当锁的粒度比较小,并且任务很频繁时比较适合使用,没有入队和出队的开销.
      * with Condition Synchronization", by W. N. Scherer III and
      * M. L. Scott.  18th Annual Conf. on Distributed Computing,
      * Oct. 2004 (see also
@@ -131,20 +131,20 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *     including cleaning out cancelled nodes/threads
      *     from lists to avoid garbage retention and memory depletion.
      *
-     * Blocking is mainly accomplished using LockSupport park/unpark,
-     * except that nodes that appear to be the next ones to become
-     * fulfilled first spin a bit (on multiprocessors only). On very
-     * busy synchronous queues, spinning can dramatically improve
-     * throughput. And on less busy ones, the amount of spinning is
+     * Blocking is mainly accomplished using LockSupport park/unpark,   // 阻塞主要通过LockSupport实现
+     * except that nodes that appear to be the next ones to become      // 除非那些节点就是下一个待补全的节点.
+     * fulfilled first spin a bit (on multiprocessors only). On very    //在非常繁忙的同步队列中,自旋可以显著的提升吞吐量; 因为像LinkedBlockingQueue这种阻塞队列,都是需要调用
+     * busy synchronous queues, spinning can dramatically improve       //LockSupport组合和唤醒等待的线程的,这种方式需要调用操作系统的指令,消耗比较大; 自旋的话cpu本省就可以搞定.
+     * throughput. And on less busy ones, the amount of spinning is     //在不太繁忙的同步队列中,自旋的损耗可以忽略.
      * small enough not to be noticeable.
      *
-     * Cleaning is done in different ways in queues vs stacks.  For
-     * queues, we can almost always remove a node immediately in O(1)
+     * Cleaning is done in different ways in queues vs stacks.  For     //在队列和栈中,clean清理方式不一样
+     * queues, we can almost always remove a node immediately in O(1)   //在队列中,我们总是可以用O(1)时间复杂度清理一个node
      * time (modulo retries for consistency checks) when it is
-     * cancelled. But if it may be pinned as the current tail, it must
-     * wait until some subsequent cancellation. For stacks, we need a
+     * cancelled. But if it may be pinned as the current tail, it must  //但是如果他在tail自旋,就必须一直等到一个取消操作出现
+     * wait until some subsequent cancellation. For stacks, we need a   //对于栈,我们需要O(n)时间复杂度遍历,清理一个node
      * potentially O(n) traversal to be sure that we can remove the
-     * node, but this can run concurrently with other threads
+     * node, but this can run concurrently with other threads           //这可以和其他线程并发执行
      * accessing the stack.
      *
      * While garbage collection takes care of most node reclamation
@@ -177,33 +177,33 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
          *         the caller can distinguish which of these occurred
          *         by checking Thread.interrupted.
          */
-        abstract Object transfer(Object e, boolean timed, long nanos);
+        abstract Object transfer(Object e, boolean timed, long nanos);  // 其实这就是TransferQueue接口的内部实现
     }
 
     /** The number of CPUs, for spin control */
     static final int NCPUS = Runtime.getRuntime().availableProcessors();
 
     /**
-     * The number of times to spin before blocking in timed waits.
-     * The value is empirically derived -- it works well across a
-     * variety of processors and OSes. Empirically, the best value
-     * seems not to vary with number of CPUs (beyond 2) so is just
+     * The number of times to spin before blocking in timed waits.      // 在阻塞等待前最大的自旋次数
+     * The value is empirically derived -- it works well across a       // 这个值的设置以经验为主推导出的
+     * variety of processors and OSes. Empirically, the best value      // 在很多处理器和操作系统上,运行性能都不错.
+     * seems not to vary with number of CPUs (beyond 2) so is just      // 经验来看,在cpu数大于2时,不需要跟着核心数变化,所以这里是一个常量
      * a constant.
      */
-    static final int maxTimedSpins = (NCPUS < 2) ? 0 : 32;
+    static final int maxTimedSpins = (NCPUS < 2) ? 0 : 32;              // 小于2时,不自旋; 大于等于2时自旋32次.
 
     /**
-     * The number of times to spin before blocking in untimed waits.
-     * This is greater than timed value because untimed waits spin
-     * faster since they don't need to check times on each spin.
+     * The number of times to spin before blocking in untimed waits.    //untimed 没有超时时间的情况下, 最大自旋次数
+     * This is greater than timed value because untimed waits spin      //数字更大, 这个自旋更快
+     * faster since they don't need to check times on each spin.        //因为每次自旋的时候不需要校验次数
      */
     static final int maxUntimedSpins = maxTimedSpins * 16;  //32 x 16 = 512
 
     /**
      * The number of nanoseconds for which it is faster to spin
-     * rather than to use timed park. A rough estimate suffices.
+     * rather than to use timed park. A rough estimate suffices.    //一个粗略的估计
      */
-    static final long spinForTimeoutThreshold = 1000L;
+    static final long spinForTimeoutThreshold = 1000L;  //默认,认为在1000纳秒内的自旋比阻塞更快
 
     /** Dual stack */
     static final class TransferStack extends Transferer {
@@ -324,21 +324,21 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
          */
         Object transfer(Object e, boolean timed, long nanos) {
             /*
-             * Basic algorithm is to loop trying one of three actions:
+             * Basic algorithm is to loop trying one of three actions:      //基础算法就是循环执行下面三个步骤:
              *
-             * 1. If apparently empty or already containing nodes of same
-             *    mode, try to push node on stack and wait for a match,
-             *    returning it, or null if cancelled.
+             * 1. If apparently empty or already containing nodes of same   //如果明显空了,或者已经包含了相同的node
+             *    mode, try to push node on stack and wait for a match,     //尝试将node压入栈中,等待匹配
+             *    returning it, or null if cancelled.                       //如果node被取消了,就返回null
              *
-             * 2. If apparently containing node of complementary mode,
-             *    try to push a fulfilling node on to stack, match
-             *    with corresponding waiting node, pop both from
-             *    stack, and return matched item. The matching or
-             *    unlinking might not actually be necessary because of
-             *    other threads performing action 3:
+             * 2. If apparently containing node of complementary mode,      //如果明显有互补的node
+             *    try to push a fulfilling node on to stack, match          //尝试压入 完全的node 到栈里
+             *    with corresponding waiting node, pop both from            //和对应的等待node匹配
+             *    stack, and return matched item. The matching or           //然后两个都出栈,返回匹配的item
+             *    unlinking might not actually be necessary because of      //匹配或者释放连接可能不必要
+             *    other threads performing action 3:                        //因为其他线程执行了步骤3
              *
-             * 3. If top of stack already holds another fulfilling node,
-             *    help it out by doing its match and/or pop
+             * 3. If top of stack already holds another fulfilling node,    //如果栈顶已经持有其他的 完整的node
+             *    help it out by doing its match and/or pop                 //帮助他完成匹配 和 pop操作, 然后继续自己的操作.
              *    operations, and then continue. The code for helping
              *    is essentially the same as for fulfilling, except
              *    that it doesn't return the item.
@@ -347,7 +347,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
             SNode s = null; // constructed/reused as needed     构造或者重复使用它
             int mode = (e == null) ? REQUEST : DATA;    // e为空代表是未履行的消费者? 生产者e不为空的
 
-            for (;;) {  //循环重试
+            for (;;) {  //循环重试,内部没有加锁,也是使用的CAS和其他机制相结合,避免使用锁.
                 SNode h = head;     // h指向头结点
                 if (h == null || h.mode == mode) {  // empty or same-mode   如果头结点为空,也就是链表为空 或 是同样mode
                     if (timed && nanos <= 0) {      // can't wait   如果不等待
@@ -402,8 +402,8 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         /**
          * Spins/blocks until node s is matched by a fulfill operation.     自旋转或者阻塞,直到被匹配
          *
-         * @param s the waiting node
-         * @param timed true if timed wait
+         * @param s the waiting node            //需要等待的SNode节点
+         * @param timed true if timed wait      //是否需要等待
          * @param nanos timeout value
          * @return matched node, or s if cancelled
          */
@@ -430,7 +430,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
              * and don't wait at all, so are trapped in transfer
              * method rather than calling awaitFulfill.
              */
-            long lastTime = timed ? System.nanoTime() : 0;
+            long lastTime = timed ? System.nanoTime() : 0;  //不需要等待就是0了
             Thread w = Thread.currentThread();
             SNode h = head;
             int spins = (shouldSpin(s) ?
@@ -441,12 +441,12 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
                 SNode m = s.match;
                 if (m != null)
                     return m;   //不为空,代表匹配成功,直接返回
-                if (timed) {    //如果为true,需要计算时间
-                    long now = System.nanoTime();
-                    nanos -= now - lastTime;
+                if (timed) {    //如果为true, 每次自旋都需要计算时间.
+                    long now = System.nanoTime();   //当前时间
+                    nanos -= now - lastTime;        //nonos减去 上次循环到现在用掉的时间 = 剩余的时间
                     lastTime = now;
-                    if (nanos <= 0) {
-                        s.tryCancel();  //为什么会取消,因为等待的时间到了,要做到可以超时
+                    if (nanos <= 0) {       //nanos<=0表示,自旋超时了,尝试取消
+                        s.tryCancel();      //为什么会取消,因为等待的时间到了,要做到可以超时
                         continue;
                     }
                 }
@@ -863,7 +863,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *        access; otherwise the order is unspecified.
      */
     public SynchronousQueue(boolean fair) {
-        transferer = fair ? new TransferQueue() : new TransferStack();  //TransferQueue公平的,TransferStack非公平
+        transferer = fair ? new TransferQueue() : new TransferStack();  // TransferQueue公平的,TransferStack非公平,默认非公平
     }
 
     /**

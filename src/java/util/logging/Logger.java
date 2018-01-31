@@ -607,8 +607,8 @@ public class Logger {
         Logger logger = this;
         while (logger != null) {
             for (Handler handler : logger.getHandlers()) {
-                handler.publish(record);
-            }
+                handler.publish(record);    //这里调用日志的handler, 就是打印日志的各种实现. 有console实现, 有日志写入文件的实现.
+            }                               //日志打印也都是io操作.
 
             if (!logger.getUseParentHandlers()) {
                 break;
@@ -1169,7 +1169,7 @@ public class Logger {
         if (Level.INFO.intValue() < levelValue) {
             return;
         }
-        log(Level.INFO, msg);
+        log(Level.INFO, msg);   //日志框架,最终打印日志是靠这里
     }
 
     /**

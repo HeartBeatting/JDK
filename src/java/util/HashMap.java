@@ -27,66 +27,66 @@ package java.util;
 import java.io.*;
 
 /**
- * Hash table based implementation of the <tt>Map</tt> interface.  This
+ * Hash table based implementation of the <tt>Map</tt> interface.  This             // 基于Map接口实现的
  * implementation provides all of the optional map operations, and permits
- * <tt>null</tt> values and the <tt>null</tt> key.  (The <tt>HashMap</tt>
+ * <tt>null</tt> values and the <tt>null</tt> key.  (The <tt>HashMap</tt>           // 允许null key和null value
  * class is roughly equivalent to <tt>Hashtable</tt>, except that it is
- * unsynchronized and permits nulls.)  This class makes no guarantees as to
+ * unsynchronized and permits nulls.)  This class makes no guarantees as to         // HashMap 和 HashTable区别就是同步和非同步的区别
  * the order of the map; in particular, it does not guarantee that the order
  * will remain constant over time.
  *
- * <p>This implementation provides constant-time performance for the basic
+ * <p>This implementation provides constant-time performance for the basic          // get和put操作是常量时间
  * operations (<tt>get</tt> and <tt>put</tt>), assuming the hash function
- * disperses the elements properly among the buckets.  Iteration over
+ * disperses the elements properly among the buckets.  Iteration over               // 迭代器遍历collection视图, 需要的时间和HashMap的容量成比例的
  * collection views requires time proportional to the "capacity" of the
- * <tt>HashMap</tt> instance (the number of buckets) plus its size (the number
- * of key-value mappings).  Thus, it's very important not to set the initial
- * capacity too high (or the load factor too low) if iteration performance is
+ * <tt>HashMap</tt> instance (the number of buckets) plus its size (the number      // = 桶的数量 + map的key-value数量
+ * of key-value mappings).  Thus, it's very important not to set the initial        // 不要设置初始的容量太高,或者load factor设置的太低
+ * capacity too high (or the load factor too low) if iteration performance is       // 如果迭代器性能很重要的话
  * important.
  *
- * <p>An instance of <tt>HashMap</tt> has two parameters that affect its
- * performance: <i>initial capacity</i> and <i>load factor</i>.  The
- * <i>capacity</i> is the number of buckets in the hash table, and the initial
- * capacity is simply the capacity at the time the hash table is created.  The
- * <i>load factor</i> is a measure of how full the hash table is allowed to
+ * <p>An instance of <tt>HashMap</tt> has two parameters that affect its            // 一个HashMap实例有两个参数影响他的性能
+ * performance: <i>initial capacity</i> and <i>load factor</i>.  The                // 1.初始容量   2.load factor
+ * <i>capacity</i> is the number of buckets in the hash table, and the initial      // 容量capacity是hash table的桶的数量
+ * capacity is simply the capacity at the time the hash table is created.  The      // 初始容量就是hash table创建时的容量
+ * <i>load factor</i> is a measure of how full the hash table is allowed to         // load factor是用来估量多大容量的时候,允许容量自动升级
  * get before its capacity is automatically increased.  When the number of
- * entries in the hash table exceeds the product of the load factor and the
- * current capacity, the hash table is <i>rehashed</i> (that is, internal data
- * structures are rebuilt) so that the hash table has approximately twice the
+ * entries in the hash table exceeds the product of the load factor and the         // 当entry的数量超过load factor计算的结果
+ * current capacity, the hash table is <i>rehashed</i> (that is, internal data      // 会对当前hash table进行重新散列
+ * structures are rebuilt) so that the hash table has approximately twice the       // hash table大约有两倍数量的桶
  * number of buckets.
  *
- * <p>As a general rule, the default load factor (.75) offers a good tradeoff
- * between time and space costs.  Higher values decrease the space overhead
- * but increase the lookup cost (reflected in most of the operations of the
+ * <p>As a general rule, the default load factor (.75) offers a good tradeoff       // 一般来说,默认的loader factor是0.75, 可以对时间和空间有很好的折中
+ * between time and space costs.  Higher values decrease the space overhead         // 高一点的参数,降低空间消耗,但是提升了搜索的消耗
+ * but increase the lookup cost (reflected in most of the operations of the         // 包括了get和put操作
  * <tt>HashMap</tt> class, including <tt>get</tt> and <tt>put</tt>).  The
- * expected number of entries in the map and its load factor should be taken
- * into account when setting its initial capacity, so as to minimize the
- * number of rehash operations.  If the initial capacity is greater
- * than the maximum number of entries divided by the load factor, no
+ * expected number of entries in the map and its load factor should be taken        // 设置初始容量的时候,期望的entry数量和load factor参数需要一起考虑
+ * into account when setting its initial capacity, so as to minimize the            // 这样可以最小化重新散列的次数: 比如可以确定有多少个entry,可以指定map的大小
+ * number of rehash operations.  If the initial capacity is greater                 // 如果初始的容量比 entries的最大数量 除 load factor
+ * than the maximum number of entries divided by the load factor, no                // 就永远没有重新散列了
  * rehash operations will ever occur.
  *
- * <p>If many mappings are to be stored in a <tt>HashMap</tt> instance,
- * creating it with a sufficiently large capacity will allow the mappings to
+ * <p>If many mappings are to be stored in a <tt>HashMap</tt> instance,             // 如果很多mapping映射准备保存到一个HashMap实例中
+ * creating it with a sufficiently large capacity will allow the mappings to        // 创建实例的时候,创建一个足够大容量的HashMap,会保存的更高效
  * be stored more efficiently than letting it perform automatic rehashing as
  * needed to grow the table.
  *
- * <p><strong>Note that this implementation is not synchronized.</strong>
- * If multiple threads access a hash map concurrently, and at least one of
- * the threads modifies the map structurally, it <i>must</i> be
- * synchronized externally.  (A structural modification is any operation
+ * <p><strong>Note that this implementation is not synchronized.</strong>       // 注意到这个类的操作没有同步
+ * If multiple threads access a hash map concurrently, and at least one of      // 如果多个线程并发操作同一个hash map
+ * the threads modifies the map structurally, it <i>must</i> be                 // 至少一个线程修改map的结构
+ * synchronized externally.  (A structural modification is any operation        // 调用方法必须是synchronized方法
  * that adds or deletes one or more mappings; merely changing the value
  * associated with a key that an instance already contains is not a
  * structural modification.)  This is typically accomplished by
  * synchronizing on some object that naturally encapsulates the map.
  *
- * If no such object exists, the map should be "wrapped" using the
+ * If no such object exists, the map should be "wrapped" using the              // Collections.synchronizedMap方法
  * {@link Collections#synchronizedMap Collections.synchronizedMap}
  * method.  This is best done at creation time, to prevent accidental
  * unsynchronized access to the map:<pre>
  *   Map m = Collections.synchronizedMap(new HashMap(...));</pre>
  *
- * <p>The iterators returned by all of this class's "collection view methods"
- * are <i>fail-fast</i>: if the map is structurally modified at any time after
+ * <p>The iterators returned by all of this class's "collection view methods"   // collection view 方法
+ * are <i>fail-fast</i>: if the map is structurally modified at any time after  // 快速失败原则
  * the iterator is created, in any way except through the iterator's own
  * <tt>remove</tt> method, the iterator will throw a
  * {@link ConcurrentModificationException}.  Thus, in the face of concurrent
@@ -94,7 +94,7 @@ import java.io.*;
  * arbitrary, non-deterministic behavior at an undetermined time in the
  * future.
  *
- * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
+ * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed      // 不一定保证能检测到异常
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
  * throw <tt>ConcurrentModificationException</tt> on a best-effort basis.
@@ -127,7 +127,7 @@ public class HashMap<K,V>
 {
 
     /**
-     * The default initial capacity - MUST be a power of two.
+     * The default initial capacity - MUST be a power of two.   // 必须为2的次方数, 默认为16!
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
@@ -185,7 +185,7 @@ public class HashMap<K,V>
     /**
      * The default threshold of map capacity above which alternative hashing is
      * used for String keys. Alternative hashing reduces the incidence of
-     * collisions due to weak hash code calculation for String keys.
+     * collisions due to weak hash code calculation for String keys.            // 减少碰撞的几率
      * <p/>
      * This value may be overridden by defining the system property
      * {@code jdk.map.althashing.threshold}. A property value of {@code 1}
@@ -247,18 +247,18 @@ public class HashMap<K,V>
      * @throws IllegalArgumentException if the initial capacity is negative
      *         or the load factor is nonpositive
      */
-    public HashMap(int initialCapacity, float loadFactor) {
+    public HashMap(int initialCapacity, float loadFactor) {                     // 构造方法
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacity);
         if (initialCapacity > MAXIMUM_CAPACITY)
-            initialCapacity = MAXIMUM_CAPACITY;
+            initialCapacity = MAXIMUM_CAPACITY;                                 // 2的30次方
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal load factor: " +
                                                loadFactor);
 
-        this.loadFactor = loadFactor;
-        threshold = initialCapacity;
+        this.loadFactor = loadFactor;   // loadFactor是系数,默认0.75
+        threshold = initialCapacity;    // size达到这个值就会重新hash
         init();
     }
 
@@ -314,10 +314,10 @@ public class HashMap<K,V>
      */
     private void inflateTable(int toSize) {
         // Find a power of 2 >= toSize
-        int capacity = roundUpToPowerOf2(toSize);
-
-        threshold = (int) Math.min(capacity * loadFactor, MAXIMUM_CAPACITY + 1);
-        table = new Entry[capacity];
+        int capacity = roundUpToPowerOf2(toSize);   // capacity 增加一倍
+        // threshold计算出来, 是用于后面判断是否要扩容的依据
+        threshold = (int) Math.min(capacity * loadFactor, MAXIMUM_CAPACITY + 1);    // threshold = capacity X loadFactor
+        table = new Entry[capacity];                // 初始化Entry数组,数组长度是capacity
         initHashSeedAsNeeded(capacity);
     }
 
@@ -375,9 +375,9 @@ public class HashMap<K,V>
     /**
      * Returns index for hash code h.
      */
-    static int indexFor(int h, int length) {
+    static int indexFor(int h, int length) {    // h是hash值, 桶的数量是length
         // assert Integer.bitCount(length) == 1 : "length must be a non-zero power of 2";
-        return h & (length-1);
+        return h & (length-1);                  // 这种其实就是轮询算法,保证hash值 h, 平均的分配的每个桶里面
     }
 
     /**
@@ -476,8 +476,8 @@ public class HashMap<K,V>
     }
 
     /**
-     * Associates the specified value with the specified key in this map.
-     * If the map previously contained a mapping for the key, the old
+     * Associates the specified value with the specified key in this map.   // 将入参的key和value映射起来
+     * If the map previously contained a mapping for the key, the old       // 如果map中key原来有对应的值,会被直接替换掉
      * value is replaced.
      *
      * @param key key with which the specified value is to be associated
@@ -488,13 +488,13 @@ public class HashMap<K,V>
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
     public V put(K key, V value) {
-        if (table == EMPTY_TABLE) {
-            inflateTable(threshold);
+        if (table == EMPTY_TABLE) {             // 判断如果entry数组是空的
+            inflateTable(threshold);            // 立马对entry数组进行初始化, 这里的threshold是指定的, threshold初始值是capacity.
         }
-        if (key == null)
-            return putForNullKey(value);
-        int hash = hash(key);
-        int i = indexFor(hash, table.length);
+        if (key == null)                        // key为null
+            return putForNullKey(value);        // 需要特殊处理null
+        int hash = hash(key);                   // 计算key的hash,这里key就不可能为null了
+        int i = indexFor(hash, table.length);   // 找到在第几个桶里
         for (Entry<K,V> e = table[i]; e != null; e = e.next) {
             Object k;
             if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {
@@ -506,7 +506,7 @@ public class HashMap<K,V>
         }
 
         modCount++;
-        addEntry(hash, key, value, i);
+        addEntry(hash, key, value, i);          // 走到这里说明,没有找到存在的key,方法里会自动判断,并进行扩容.
         return null;
     }
 
@@ -514,9 +514,9 @@ public class HashMap<K,V>
      * Offloaded version of put for null keys
      */
     private V putForNullKey(V value) {
-        for (Entry<K,V> e = table[0]; e != null; e = e.next) {
-            if (e.key == null) {
-                V oldValue = e.value;
+        for (Entry<K,V> e = table[0]; e != null; e = e.next) {  // null放到table[0]里
+            if (e.key == null) {            // 用next遍历桶里的节点
+                V oldValue = e.value;       // 找到null,就把value替换掉
                 e.value = value;
                 e.recordAccess(this);
                 return oldValue;
@@ -584,7 +584,7 @@ public class HashMap<K,V>
         Entry[] newTable = new Entry[newCapacity];
         transfer(newTable, initHashSeedAsNeeded(newCapacity));
         table = newTable;
-        threshold = (int)Math.min(newCapacity * loadFactor, MAXIMUM_CAPACITY + 1);
+        threshold = (int)Math.min(newCapacity * loadFactor, MAXIMUM_CAPACITY + 1);  // 每次扩容后,修改threshold为新容量 x loadFactor
     }
 
     /**
@@ -666,24 +666,24 @@ public class HashMap<K,V>
      * in the HashMap.  Returns null if the HashMap contains no mapping
      * for this key.
      */
-    final Entry<K,V> removeEntryForKey(Object key) {
-        if (size == 0) {
+    final Entry<K,V> removeEntryForKey(Object key) {    // 删掉entry
+        if (size == 0) {                            // 空间为0,不需要操作
             return null;
         }
-        int hash = (key == null) ? 0 : hash(key);
-        int i = indexFor(hash, table.length);
+        int hash = (key == null) ? 0 : hash(key);   // 找到hash
+        int i = indexFor(hash, table.length);       // 找到第几个桶
         Entry<K,V> prev = table[i];
         Entry<K,V> e = prev;
 
         while (e != null) {
-            Entry<K,V> next = e.next;
+            Entry<K,V> next = e.next;               // 从e开始顺序往下找
             Object k;
             if (e.hash == hash &&
-                ((k = e.key) == key || (key != null && key.equals(k)))) {
-                modCount++;
-                size--;
-                if (prev == e)
-                    table[i] = next;
+                ((k = e.key) == key || (key != null && key.equals(k)))) {   // 找到key
+                modCount++;                         // 修改次数加一
+                size--;                             // 空间大小减一
+                if (prev == e)                      // 找到了指向下一个,那么中间的entry就会被gc回收掉了.
+                    table[i] = next;                // 这里的next都是一个entry, entry是一个键值对
                 else
                     prev.next = next;
                 e.recordRemoval(this);
@@ -872,20 +872,20 @@ public class HashMap<K,V>
     }
 
     /**
-     * Adds a new entry with the specified key, value and hash code to
+     * Adds a new entry with the specified key, value and hash code to  // 添加一个新entry, 指定了entry的key,value,hash code
      * the specified bucket.  It is the responsibility of this
      * method to resize the table if appropriate.
-     *
-     * Subclass overrides this to alter the behavior of put method.
-     */
-    void addEntry(int hash, K key, V value, int bucketIndex) {
-        if ((size >= threshold) && (null != table[bucketIndex])) {
-            resize(2 * table.length);
+     *                                                                  // 按下面的逻辑,hash基本上是尽量保证一个桶里只有一个元素的,这样get操作就只要常量时间
+     * Subclass overrides this to alter the behavior of put method.     // 子类可以重写这个方法
+     */ // bucketIndex 是第几个hash桶
+    void addEntry(int hash, K key, V value, int bucketIndex) {      // 这里是在操作HashMap时动态扩容的关键.
+        if ((size >= threshold) && (null != table[bucketIndex])) {  // 判断key-value映射数量大于等于threshold, table[bucketIndex]不为空,表示节点里有内容了,需要扩容了.
+            resize(2 * table.length);                     // 符合条件,就扩容两倍.
             hash = (null != key) ? hash(key) : 0;
             bucketIndex = indexFor(hash, table.length);
         }
 
-        createEntry(hash, key, value, bucketIndex);
+        createEntry(hash, key, value, bucketIndex);                 // 如果table[bucketIndex]为空或者没有达到那个数量,就创建一个entry
     }
 
     /**
@@ -898,7 +898,7 @@ public class HashMap<K,V>
      */
     void createEntry(int hash, K key, V value, int bucketIndex) {
         Entry<K,V> e = table[bucketIndex];
-        table[bucketIndex] = new Entry<>(hash, key, value, e);
+        table[bucketIndex] = new Entry<>(hash, key, value, e);  // 新创建的Entry的next指向当前的e, 这个操作是在构造函数中实现的.
         size++;
     }
 

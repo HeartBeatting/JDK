@@ -1592,18 +1592,18 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Condition implementation for a {@link
-     * AbstractQueuedLongSynchronizer} serving as the basis of a {@link
+     * Condition implementation for a {@link                                //AQS的Condition实现
+     * AbstractQueuedLongSynchronizer} serving as the basis of a {@link     //作为Lock的基础实现
      * Lock} implementation.
      *
-     * <p>Method documentation for this class describes mechanics,
+     * <p>Method documentation for this class describes mechanics,          //方法文档描述了结构
      * not behavioral specifications from the point of view of Lock
      * and Condition users. Exported versions of this class will in
      * general need to be accompanied by documentation describing
      * condition semantics that rely on those of the associated
      * <tt>AbstractQueuedLongSynchronizer</tt>.
      *
-     * <p>This class is Serializable, but all fields are transient,
+     * <p>This class is Serializable, but all fields are transient,         //所有类属性都是transient
      * so deserialized conditions have no waiters.
      *
      * @since 1.6

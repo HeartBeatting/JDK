@@ -38,11 +38,11 @@ package java.util.concurrent;
 import java.util.*;
 
 /**
- * A mix-in style interface for marking objects that should be
+ * A mix-in style interface for marking objects that should be          // 用于标记,需要延时执行
  * acted upon after a given delay.
  *
- * <p>An implementation of this interface must define a
- * <tt>compareTo</tt> method that provides an ordering consistent with
+ * <p>An implementation of this interface must define a                 //必须实现compareTo接口
+ * <tt>compareTo</tt> method that provides an ordering consistent with  //和getDelay方法顺序一致的
  * its <tt>getDelay</tt> method.
  *
  * @since 1.5

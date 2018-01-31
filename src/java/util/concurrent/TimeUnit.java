@@ -36,18 +36,18 @@
 package java.util.concurrent;
 
 /**
- * A <tt>TimeUnit</tt> represents time durations at a given unit of
- * granularity and provides utility methods to convert across units,
- * and to perform timing and delay operations in these units.  A
- * <tt>TimeUnit</tt> does not maintain time information, but only
- * helps organize and use time representations that may be maintained
- * separately across various contexts.  A nanosecond is defined as one
+ * A <tt>TimeUnit</tt> represents time durations at a given unit of     // TimeUnit代表指定单位的一段时间
+ * granularity and provides utility methods to convert across units,    // 提供了工具方法可以在各个单位间相互转换
+ * and to perform timing and delay operations in these units.  A        // 这些单位中执行时间和延时操作
+ * <tt>TimeUnit</tt> does not maintain time information, but only       // 一个TimeUnit对象并不维护时间信息
+ * helps organize and use time representations that may be maintained   // 只是帮助组织和使用时间代表
+ * separately across various contexts.  A nanosecond is defined as one  // 在各个环境维护隔离开
  * thousandth of a microsecond, a microsecond as one thousandth of a
  * millisecond, a millisecond as one thousandth of a second, a minute
  * as sixty seconds, an hour as sixty minutes, and a day as twenty four
  * hours.
  *
- * <p>A <tt>TimeUnit</tt> is mainly used to inform time-based methods
+ * <p>A <tt>TimeUnit</tt> is mainly used to inform time-based methods   // TimeUnit主要用于基于时间的方法
  * how a given timing parameter should be interpreted. For example,
  * the following code will timeout in 50 milliseconds if the {@link
  * java.util.concurrent.locks.Lock lock} is not available:
@@ -70,15 +70,15 @@ package java.util.concurrent;
  */
 public enum TimeUnit {
     NANOSECONDS {
-        public long toNanos(long d)   { return d; }
-        public long toMicros(long d)  { return d/(C1/C0); }
-        public long toMillis(long d)  { return d/(C2/C0); }
+        public long toNanos(long d)   { return d; }                     // 这里的方法都是用来相互转化的方法
+        public long toMicros(long d)  { return d/(C1/C0); }             // 值得注意的就是枚举里的方法,必须在下面申明为抽象方法或者一个具体的方法, 在每个枚举里面自己实现
+        public long toMillis(long d)  { return d/(C2/C0); }             // @see 下面的toMillis 等
         public long toSeconds(long d) { return d/(C3/C0); }
         public long toMinutes(long d) { return d/(C4/C0); }
         public long toHours(long d)   { return d/(C5/C0); }
         public long toDays(long d)    { return d/(C6/C0); }
-        public long convert(long d, TimeUnit u) { return u.toNanos(d); }
-        int excessNanos(long d, long m) { return (int)(d - (m*C2)); }
+        public long convert(long d, TimeUnit u) { return u.toNanos(d); }    //这个是基于u进行单位换算的
+        int excessNanos(long d, long m) { return (int)(d - (m*C2)); }       //这个类的这种整齐的写法值得借鉴
     },
     MICROSECONDS {
         public long toNanos(long d)   { return x(d, C1/C0, MAX/(C1/C0)); }
@@ -314,7 +314,7 @@ public enum TimeUnit {
      * or equal to zero, do not wait at all.
      * @throws InterruptedException if interrupted while waiting
      */
-    public void timedWait(Object obj, long timeout)
+    public void timedWait(Object obj, long timeout)     // 这边的三个方法, 就是用来根据时间单位进行 wait,join,sleep的,也是蛮实用的!
             throws InterruptedException {
         if (timeout > 0) {
             long ms = toMillis(timeout);

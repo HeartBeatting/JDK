@@ -36,12 +36,12 @@
 package java.util.concurrent;
 
 /**
- * A task that returns a result and may throw an exception.
+ * A task that returns a result and may throw an exception.         //这是Concurrent包里面回调的接口,我们开发的时候其实也可以用的
  * Implementors define a single method with no arguments called
  * <tt>call</tt>.
  *
  * <p>The <tt>Callable</tt> interface is similar to {@link
- * java.lang.Runnable}, in that both are designed for classes whose
+ * java.lang.Runnable}, in that both are designed for classes whose //Runnable和Callable都可以被其他线程调用
  * instances are potentially executed by another thread.  A
  * <tt>Runnable</tt>, however, does not return a result and cannot
  * throw a checked exception.

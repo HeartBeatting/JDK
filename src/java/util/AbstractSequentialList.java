@@ -65,7 +65,7 @@ package java.util;
  * @see AbstractCollection
  * @since 1.2
  */
-
+//比如LinkedList就是用这个抽象类实现的,因为是顺序访问的List
 public abstract class AbstractSequentialList<E> extends AbstractList<E> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically
@@ -115,7 +115,7 @@ public abstract class AbstractSequentialList<E> extends AbstractList<E> {
             ListIterator<E> e = listIterator(index);
             E oldVal = e.next();
             e.set(element);
-            return oldVal;
+            return oldVal;      //返回老的值
         } catch (NoSuchElementException exc) {
             throw new IndexOutOfBoundsException("Index: "+index);
         }
@@ -170,7 +170,7 @@ public abstract class AbstractSequentialList<E> extends AbstractList<E> {
         try {
             ListIterator<E> e = listIterator(index);
             E outCast = e.next();
-            e.remove();
+            e.remove();     //删除操作也是通过listIterator来的
             return outCast;
         } catch (NoSuchElementException exc) {
             throw new IndexOutOfBoundsException("Index: "+index);

@@ -35,14 +35,14 @@ import java.security.PrivilegedExceptionAction;
 import java.security.PrivilegedAction;
 
 /**
- * This class implements client sockets (also called just
- * "sockets"). A socket is an endpoint for communication
+ * This class implements client sockets (also called just               // 这个类实现了客户端的sockets
+ * "sockets"). A socket is an endpoint for communication                // socket就是用于两台机器通讯的终端
  * between two machines.
  * <p>
- * The actual work of the socket is performed by an instance of the
- * <code>SocketImpl</code> class. An application, by changing
+ * The actual work of the socket is performed by an instance of the     // socket是依赖SocketImpl实例
+ * <code>SocketImpl</code> class. An application, by changing           // 一个应用 可以通过修改socket工厂,创建socket实现
  * the socket factory that creates the socket implementation,
- * can configure itself to create sockets appropriate to the local
+ * can configure itself to create sockets appropriate to the local      // 可以设置自身, 用来创建适合本地防火墙的sockets
  * firewall.
  *
  * @author  unascribed
@@ -81,12 +81,12 @@ class Socket implements java.io.Closeable {
      * @since   JDK1.1
      * @revised 1.4
      */
-    public Socket() {
+    public Socket() {   //无参构造函数, 任然未连接的
         setImpl();
     }
 
     /**
-     * Creates an unconnected socket, specifying the type of proxy, if any,
+     * Creates an unconnected socket, specifying the type of proxy, if any,     // 创建一个还未链接的socket
      * that should be used regardless of any other settings.
      * <P>
      * If there is a security manager, its <code>checkConnect</code> method
@@ -168,7 +168,7 @@ class Socket implements java.io.Closeable {
     }
 
     /**
-     * Creates a stream socket and connects it to the specified port
+     * Creates a stream socket and connects it to the specified port            //创建一个socket流,并且会连上指定的host和port
      * number on the named host.
      * <p>
      * If the specified host is <tt>null</tt> it is the equivalent of
@@ -178,7 +178,7 @@ class Socket implements java.io.Closeable {
      * <p>
      * If the application has specified a server socket factory, that
      * factory's <code>createSocketImpl</code> method is called to create
-     * the actual socket implementation. Otherwise a "plain" socket is created.
+     * the actual socket implementation. Otherwise a "plain" socket is created. //plain 普通的,简单的
      * <p>
      * If there is a security manager, its
      * <code>checkConnect</code> method is called
@@ -418,11 +418,11 @@ class Socket implements java.io.Closeable {
             throw new NullPointerException();
 
         try {
-            createImpl(stream);
+            createImpl(stream);     //创建socket实现
             if (localAddr != null)
-                bind(localAddr);
+                bind(localAddr);    //绑定本地地址
             if (address != null)
-                connect(address);
+                connect(address);   //和远程socket连接
         } catch (IOException e) {
             close();
             throw e;
@@ -463,7 +463,7 @@ class Socket implements java.io.Closeable {
                 Class clazz = impl.getClass();
                 while (true) {
                     try {
-                        clazz.getDeclaredMethod("connect", cl);
+                        clazz.getDeclaredMethod("connect", cl);     //用于判断是否有connect方法,没有就是老的实现
                         return Boolean.FALSE;
                     } catch (NoSuchMethodException e) {
                         clazz = clazz.getSuperclass();
@@ -490,7 +490,7 @@ class Socket implements java.io.Closeable {
         } else {
             // No need to do a checkOldImpl() here, we know it's an up to date
             // SocketImpl!
-            impl = new SocksSocketImpl();
+            impl = new SocksSocketImpl();   //默认的socket实现
         }
         if (impl != null)
             impl.setSocket(this);
@@ -1585,14 +1585,14 @@ class Socket implements java.io.Closeable {
     /**
      * The factory for all client sockets.
      */
-    private static SocketImplFactory factory = null;
+    private static SocketImplFactory factory = null;    //所有client sockets的工厂, 默认是null, 开发者可以自定义SocketImplFactory, 用于订制socket
 
     /**
      * Sets the client socket implementation factory for the
-     * application. The factory can be specified only once.
+     * application. The factory can be specified only once.                     //只可被调用一次
      * <p>
-     * When an application creates a new client socket, the socket
-     * implementation factory's <code>createSocketImpl</code> method is
+     * When an application creates a new client socket, the socket              //当应用创建一个新的客户端socket是
+     * implementation factory's <code>createSocketImpl</code> method is         //调用createSocketImpl会创建真正的socket实例
      * called to create the actual socket implementation.
      * <p>
      * Passing <code>null</code> to the method is a no-op unless the factory
@@ -1611,7 +1611,7 @@ class Socket implements java.io.Closeable {
      * @see        java.net.SocketImplFactory#createSocketImpl()
      * @see        SecurityManager#checkSetFactory
      */
-    public static synchronized void setSocketImplFactory(SocketImplFactory fac)
+    public static synchronized void setSocketImplFactory(SocketImplFactory fac)     //同步方法,用于设置static变量
         throws IOException
     {
         if (factory != null) {
