@@ -16,6 +16,7 @@ gitKey.pub
 .mymetadata
 /.gradle/
 /.idea/
+.idea/*
 /captures/
 .DS_Store
 
