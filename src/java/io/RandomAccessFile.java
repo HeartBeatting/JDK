@@ -56,7 +56,7 @@ import sun.misc.IoTrace;
  * @author  unascribed
  * @since   JDK1.0
  */
-
+// File类只是针对文件本身进行操作的，而如果要想对文件内容进行操作，则可以使用RandomAccessFile类
 public class RandomAccessFile implements DataOutput, DataInput, Closeable {
 
     private FileDescriptor fd;

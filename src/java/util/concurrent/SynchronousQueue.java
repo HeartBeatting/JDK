@@ -39,7 +39,7 @@ import java.util.concurrent.locks.*;
 import java.util.concurrent.atomic.*;
 import java.util.*;
 
-/**
+/** // SynchronousQueue put offer take干嘛的
  * A {@linkplain BlockingQueue blocking queue} in which each insert         // 这一段就是介绍这个特别的阻塞队列
  * operation must wait for a corresponding remove operation by another      // 队列一般都是对应的生产者和消费者
  * thread, and vice versa.  A synchronous queue does not have any           // 这个队列生产者必须在有消费者线程等待时才会放入任务成功.

@@ -82,7 +82,7 @@ import java.util.concurrent.locks.LockSupport;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class LinkedTransferQueue<E> extends AbstractQueue<E>
+public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞队列要系统再看下吧.
     implements TransferQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -3223113410248163686L;
 

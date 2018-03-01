@@ -82,7 +82,7 @@ import sun.misc.Unsafe;
  * @param <E> the type of elements maintained by this set
  * @since 1.6
  */
-public class ConcurrentSkipListSet<E>
+public class ConcurrentSkipListSet<E>   // todo 跳跃表
     extends AbstractSet<E>
     implements NavigableSet<E>, Cloneable, java.io.Serializable {
 
