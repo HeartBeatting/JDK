@@ -32,7 +32,7 @@ import java.util.Set;
 
 
 /**
- * A multiplexor of {@link SelectableChannel} objects.
+ * A multiplexor of {@link SelectableChannel} objects.                          // 和SelectableChannel的关系是什么? todo
  *
  * <p> A selector may be created by invoking the {@link #open open} method of
  * this class, which will use the system's default {@link
@@ -211,7 +211,7 @@ public abstract class Selector implements Closeable {
     protected Selector() { }
 
     /**
-     * Opens a selector.
+     * Opens a selector.    // 打开一个selector, 并返回. 其实这里就相当于创建了selector对象.
      *
      * <p> The new selector is created by invoking the {@link
      * java.nio.channels.spi.SelectorProvider#openSelector openSelector} method
@@ -278,8 +278,8 @@ public abstract class Selector implements Closeable {
      * Selects a set of keys whose corresponding channels are ready for I/O
      * operations.
      *
-     * <p> This method performs a non-blocking <a href="#selop">selection
-     * operation</a>.  If no channels have become selectable since the previous
+     * <p> This method performs a non-blocking <a href="#selop">selection       // 非阻塞的方法!
+     * operation</a>.  If no channels have become selectable since the previous // 如果从上次select操作到现在没有可选择的(准备好的)key,方法立即返回0!
      * selection operation then this method immediately returns zero.
      *
      * <p> Invoking this method clears the effect of any previous invocations
@@ -297,10 +297,10 @@ public abstract class Selector implements Closeable {
     public abstract int selectNow() throws IOException;
 
     /**
-     * Selects a set of keys whose corresponding channels are ready for I/O
+     * Selects a set of keys whose corresponding channels are ready for I/O     // 选择key (key对应的channel准备好进行I/O操作了)
      * operations.
      *
-     * <p> This method performs a blocking <a href="#selop">selection
+     * <p> This method performs a blocking <a href="#selop">selection           // 这是一个阻塞方法
      * operation</a>.  It returns only after at least one channel is selected,
      * this selector's {@link #wakeup wakeup} method is invoked, the current
      * thread is interrupted, or the given timeout period expires, whichever
@@ -333,7 +333,7 @@ public abstract class Selector implements Closeable {
      * Selects a set of keys whose corresponding channels are ready for I/O
      * operations.
      *
-     * <p> This method performs a blocking <a href="#selop">selection
+     * <p> This method performs a blocking <a href="#selop">selection           // 阻塞方法
      * operation</a>.  It returns only after at least one channel is selected,
      * this selector's {@link #wakeup wakeup} method is invoked, or the current
      * thread is interrupted, whichever comes first.  </p>
@@ -361,7 +361,7 @@ public abstract class Selector implements Closeable {
      * meantime.  In any case the value returned by that invocation may be
      * non-zero.  Subsequent invocations of the {@link #select()} or {@link
      * #select(long)} methods will block as usual unless this method is invoked
-     * again in the meantime.
+     * again in the meantime.   // 在此之间
      *
      * <p> Invoking this method more than once between two successive selection
      * operations has the same effect as invoking it just once.  </p>

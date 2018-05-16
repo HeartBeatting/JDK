@@ -205,7 +205,7 @@ public abstract class SocketChannel
      *
      * @return  The valid-operation set
      */
-    public final int validOps() {
+    public final int validOps() {       // 支持以下三个操作
         return (SelectionKey.OP_READ
                 | SelectionKey.OP_WRITE
                 | SelectionKey.OP_CONNECT);

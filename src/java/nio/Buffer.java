@@ -296,7 +296,7 @@ public abstract class Buffer {
         int m = mark;
         if (m < 0)
             throw new InvalidMarkException();
-        position = m;
+        position = m;   // 将mark值还给position
         return this;
     }
 
@@ -346,9 +346,9 @@ public abstract class Buffer {
      * @return  This buffer
      */
     public final Buffer flip() {
-        limit = position;
-        position = 0;
-        mark = -1;
+        limit = position;   // 读的上限就是刚才写到的位置(position)
+        position = 0;       // 读指针指向0的位置
+        mark = -1;          // mark设置为初始值-1
         return this;
     }
 

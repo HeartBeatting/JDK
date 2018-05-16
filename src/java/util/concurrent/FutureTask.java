@@ -361,7 +361,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      */
     private void finishCompletion() {           // 这个方法一般在任务状态变化后调用,用来通知阻塞获取任务状态的线程.
         // assert state > COMPLETING;
-        for (WaitNode q; (q = waiters) != null;) {  // 遍历等待当前任务的节点, 一直找到null位置
+        for (WaitNode q; (q = waiters) != null;) {  // 遍历等待当前任务的节点, 一直找到null位置, 依次唤醒所有的等待线程.
             if (UNSAFE.compareAndSwapObject(this, waitersOffset, q, null)) {
                 for (;;) {
                     Thread t = q.thread;
@@ -409,7 +409,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 return s;
             }
             else if (s == COMPLETING) // cannot time out yet
-                Thread.yield();
+                Thread.yield();     // 任务没有完成,当前线程循环yield.
             else if (q == null)
                 q = new WaitNode();
             else if (!queued)

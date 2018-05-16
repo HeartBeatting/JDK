@@ -285,14 +285,14 @@ public class ScheduledThreadPoolExecutor                            // 延时任
          * Overrides FutureTask version so as to reset/requeue if periodic.
          */
         public void run() {
-            boolean periodic = isPeriodic();    // 就是period等于0就表示不是循环任务
-            if (!canRunInCurrentRunState(periodic))
+            boolean periodic = isPeriodic();        // 就是period等于0就表示不是循环任务.
+            if (!canRunInCurrentRunState(periodic)) // 不能跑则取消任务
                 cancel(false);
             else if (!periodic)
-                ScheduledFutureTask.super.run();
+                ScheduledFutureTask.super.run();    // 不是周期性的,说明只需要运行一次.
             else if (ScheduledFutureTask.super.runAndReset()) {
-                setNextRunTime();
-                reExecutePeriodic(outerTask);
+                setNextRunTime();                   // 设置下一次的执行时间.
+                reExecutePeriodic(outerTask);       // 再次放到队列中
             }
         }
     }

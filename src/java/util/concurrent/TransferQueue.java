@@ -38,7 +38,7 @@ package java.util.concurrent;
 /**
  * A {@link BlockingQueue} in which producers may wait for consumers    // 这是一个阻塞队列, 生产者可能等待消费者来拿元素
  * to receive elements.  A {@code TransferQueue} may be useful for      // TransferQueue适合用于如下场景:
- * example in message passing applications in which producers           // 消息传递应用
+ * example in message passing applications in which producers           // 适合于消息传递应用
  * sometimes (using method {@link #transfer}) await receipt of          // 生产者有时候(使用transfer方法),等待消费者调用take/poll方法来接收
  * elements by consumers invoking {@code take} or {@code poll}, while
  * at other times enqueue elements (via method {@code put}) without     // 其他时候,直接通过put方法将元素入队,不等待消费者来接收
@@ -55,7 +55,7 @@ package java.util.concurrent;
  * initially block waiting for available space, and/or subsequently     // 且/或 随后阻塞等待消费者来获取
  * block waiting for reception by a consumer.  Note that in a queue     // 注意: 如果一个队列容量为0,比如SynchronousQueue
  * with zero capacity, such as {@link SynchronousQueue}, {@code put}    // put和transfer实际上意义是相同的.
- * and {@code transfer} are effectively synonymous.
+ * and {@code transfer} are effectively synonymous.                     // 因为容量为0,put和transfer操作就只是手递手传递对象了.
  *
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">

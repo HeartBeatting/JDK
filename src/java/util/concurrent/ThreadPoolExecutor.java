@@ -909,7 +909,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 if (wc >= CAPACITY ||
                     wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
-                if (compareAndIncrementWorkerCount(c))
+                if (compareAndIncrementWorkerCount(c))  // 增加线程数.
                     break retry;
                 c = ctl.get();  // Re-read ctl
                 if (runStateOf(c) != rs)
@@ -923,7 +923,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         Worker w = null;
         try {
             final ReentrantLock mainLock = this.mainLock;
-            w = new Worker(firstTask);
+            w = new Worker(firstTask);      // 创建一个新的线程,Worker是线程的包装对象.
             final Thread t = w.thread;
             if (t != null) {
                 mainLock.lock();
@@ -1306,9 +1306,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                               ThreadFactory threadFactory,
                               RejectedExecutionHandler handler) {
         if (corePoolSize < 0 ||
-            maximumPoolSize <= 0 ||
-            maximumPoolSize < corePoolSize ||
-            keepAliveTime < 0)
+                maximumPoolSize <= 0 ||
+                maximumPoolSize < corePoolSize ||
+                keepAliveTime < 0)
             throw new IllegalArgumentException();
         if (workQueue == null || threadFactory == null || handler == null)
             throw new NullPointerException();
@@ -1363,14 +1363,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 return;
             c = ctl.get();
         }
-        if (isRunning(c) && workQueue.offer(command)) {
+        if (isRunning(c) && workQueue.offer(command)) {     // 任务添加到队列失败, SynchronousQueue没有容量,如果没有等待线程offer会返回false.
             int recheck = ctl.get();
             if (! isRunning(recheck) && remove(command))
                 reject(command);
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
-        else if (!addWorker(command, false))
+        else if (!addWorker(command, false))            // 任务添加失败就走到这里, 创建(false)非核心线程.
             reject(command);
     }
 

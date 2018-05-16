@@ -107,7 +107,7 @@ public abstract class SelectableChannel
     public abstract SelectorProvider provider();
 
     /**
-     * Returns an <a href="SelectionKey.html#opsets">operation set</a>
+     * Returns an <a href="SelectionKey.html#opsets">operation set</a>          // channel支持的操作
      * identifying this channel's supported operations.  The bits that are set
      * in this integer value denote exactly the operations that are valid for
      * this channel.  This method always returns the same value for a given
@@ -139,7 +139,7 @@ public abstract class SelectableChannel
     // sync(keySet) { return isRegistered; }
 
     /**
-     * Retrieves the key representing the channel's registration with the given
+     * Retrieves the key representing the channel's registration with the given // 返回channel注册在selector上面的key
      * selector.  </p>
      *
      * @return  The key returned when this channel was last registered with the
@@ -271,7 +271,7 @@ public abstract class SelectableChannel
      * @return  A key representing the registration of this channel with
      *          the given selector
      */
-    public final SelectionKey register(Selector sel, int ops)
+    public final SelectionKey register(Selector sel, int ops)       // 将channel注册到selector上.
         throws ClosedChannelException
     {
         return register(sel, ops, null);

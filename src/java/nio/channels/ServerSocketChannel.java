@@ -162,7 +162,7 @@ public abstract class ServerSocketChannel
      * a local address. Once an association is established then the socket remains
      * bound until the channel is closed.
      *
-     * <p> The {@code backlog} parameter is the maximum number of pending
+     * <p> The {@code backlog} parameter is the maximum number of pending           // 最大阻塞socket 连接数
      * connections on the socket. Its exact semantics are implementation specific.
      * In particular, an implementation may impose a maximum length or may choose
      * to ignore the parameter altogther. If the {@code backlog} parameter has
@@ -207,7 +207,7 @@ public abstract class ServerSocketChannel
         throws IOException;
 
     /**
-     * Retrieves a server socket associated with this channel.
+     * Retrieves a server socket associated with this channel.      // 返回和channel绑定的socket
      *
      * <p> The returned object will not declare any public methods that are not
      * declared in the {@link java.net.ServerSocket} class.  </p>

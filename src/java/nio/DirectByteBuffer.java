@@ -125,15 +125,15 @@ class DirectByteBuffer
 
         long base = 0;
         try {
-            base = unsafe.allocateMemory(size); // 底层的方法是调用unsafe分配直接内存
+            base = unsafe.allocateMemory(size); // 底层的方法是调用unsafe分配直接内存,返回的base是内存地址
         } catch (OutOfMemoryError x) {          // 内存不够时,jvm抛出异常OutOfMemoryError
             Bits.unreserveMemory(size, cap);    // 这里会清理计数
             throw x;
         }
-        unsafe.setMemory(base, size, (byte) 0);
+        unsafe.setMemory(base, size, (byte) 0); // 把新申请的内存数据清0
         if (pa && (base % ps != 0)) {
             // Round up to page boundary
-            address = base + ps - (base & (ps - 1));
+            address = base + ps - (base & (ps - 1));    // DirectByteBuffer的address是用来给JNI的GetDirectBufferAddress方法调用的.
         } else {
             address = base;
         }
@@ -289,8 +289,8 @@ class DirectByteBuffer
 
     public ByteBuffer put(byte x) {
 
-        unsafe.putByte(ix(nextPutIndex()), ((x)));
-        return this;
+        unsafe.putByte(ix(nextPutIndex()), ((x)));  // 这类的读写最终都是由unsafe操作直接内存的.
+        return this;                                // HeapByteBuffer(堆内存)的读写都是直接操作数组(数组就是分配在jvm的堆内存中)
 
 
 

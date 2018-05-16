@@ -206,7 +206,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     static final long spinForTimeoutThreshold = 1000L;  //默认,认为在1000纳秒内的自旋比阻塞更快
 
     /** Dual stack */
-    static final class TransferStack extends Transferer {
+    static final class TransferStack extends Transferer {       // 这个Stack其实也是利用链表实现的.
         /*
          * This extends Scherer-Scott dual stack algorithm, differing,
          * among other ways, by using "covering" nodes rather than
@@ -255,16 +255,16 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
              * @return true if successfully matched to s
              */
             boolean tryMatch(SNode s) {
-                if (match == null &&
+                if (match == null &&    // match == null表示还没有匹配的节点
                     UNSAFE.compareAndSwapObject(this, matchOffset, null, s)) {
                     Thread w = waiter;
                     if (w != null) {    // waiters need at most one unpark
                         waiter = null;
-                        LockSupport.unpark(w);  //匹配成功唤醒线程
+                        LockSupport.unpark(w);  // w!=null,表示匹配成功,需要唤醒等待的线程
                     }
                     return true;
                 }
-                return match == s;
+                return match == s;      // 判断是否是同一个
             }
 
             /**
@@ -300,7 +300,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         /** The head (top) of the stack */
         volatile SNode head;
 
-        boolean casHead(SNode h, SNode nh) {
+        boolean casHead(SNode h, SNode nh) {    // CAS修改head
             return h == head &&
                 UNSAFE.compareAndSwapObject(this, headOffset, h, nh);
         }
@@ -322,7 +322,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         /**
          * Puts or takes an item.   放或取
          */
-        Object transfer(Object e, boolean timed, long nanos) {
+        Object transfer(Object e, boolean timed, long nanos) {              // ==> timed表示是否会等待
             /*
              * Basic algorithm is to loop trying one of three actions:      //基础算法就是循环执行下面三个步骤:
              *
@@ -334,10 +334,10 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
              *    try to push a fulfilling node on to stack, match          //尝试压入 完全的node 到栈里
              *    with corresponding waiting node, pop both from            //和对应的等待node匹配
              *    stack, and return matched item. The matching or           //然后两个都出栈,返回匹配的item
-             *    unlinking might not actually be necessary because of      //匹配或者释放连接可能不必要
+             *    unlinking might not actually be necessary because of      //匹配或者释放连接可能不必要     ==> 这里是这个无锁算法的关键.
              *    other threads performing action 3:                        //因为其他线程执行了步骤3
              *
-             * 3. If top of stack already holds another fulfilling node,    //如果栈顶已经持有其他的 完整的node
+             * 3. If top of stack already holds another fulfilling node,    //如果栈顶已经持有其他的 完整的node   ==> 这里会帮助完成第二个步骤中没有完成的步骤.
              *    help it out by doing its match and/or pop                 //帮助他完成匹配 和 pop操作, 然后继续自己的操作.
              *    operations, and then continue. The code for helping
              *    is essentially the same as for fulfilling, except
@@ -350,13 +350,13 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
             for (;;) {  //循环重试,内部没有加锁,也是使用的CAS和其他机制相结合,避免使用锁.
                 SNode h = head;     // h指向头结点
                 if (h == null || h.mode == mode) {  // empty or same-mode   如果头结点为空,也就是链表为空 或 是同样mode
-                    if (timed && nanos <= 0) {      // can't wait   如果不等待
+                    if (timed && nanos <= 0) {      // can't wait   ==> time为true,nanos为0时会直接
                         if (h != null && h.isCancelled())   //如果这头节点不为空(是因为h.mode == mode进来的), 并且头节点是被取消的.这个是用于忽略取消节点的
-                            casHead(h, h.next);     // pop cancelled node   并且头结点替换为头结点的下一个, 本次循环结束, 继续下次循环
+                            casHead(h, h.next);     // pop cancelled node   并且头结点替换为头结点的下一个, 本次循环结束, 继续下次循环.
                         else
-                            return null;    //如果头结点为空,则返回null?
+                            return null;    // 如果头结点为空,则返回null,说明必须有等待的线程,否则直接返回null. 不做自旋!
                     } else if (casHead(h, s = snode(s, e, h, mode))) {  //尝试CAS设置 当前节点e 为栈顶节点; 设置失败了就是自旋重试;
-                        SNode m = awaitFulfill(s, timed, nanos);
+                        SNode m = awaitFulfill(s, timed, nanos);    //
                         if (m == s) {               // wait was cancelled   等于自身表示取消了
                             clean(s);
                             return null;
@@ -407,7 +407,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
          * @param nanos timeout value
          * @return matched node, or s if cancelled
          */
-        SNode awaitFulfill(SNode s, boolean timed, long nanos) {
+        SNode awaitFulfill(SNode s, boolean timed, long nanos) {    // 这里的timed如果为false,会阻塞等待的
             /*
              * When a node/thread is about to block, it sets its waiter
              * field and then rechecks state at least one more time
@@ -867,7 +867,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Adds the specified element to this queue, waiting if necessary for
+     * Adds the specified element to this queue, waiting if necessary for   // 这个方法是会阻塞一直等下去的
      * another thread to receive it.
      *
      * @throws InterruptedException {@inheritDoc}
@@ -875,8 +875,8 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      */
     public void put(E o) throws InterruptedException {
         if (o == null) throw new NullPointerException();
-        if (transferer.transfer(o, false, 0) == null) {
-            Thread.interrupted();
+        if (transferer.transfer(o, false, 0) == null) {     // ==> time为false代表会阻塞一直等到匹配成功
+            Thread.interrupted();                                       // 返回null,会进入中断,抛出异常,所以在被中断时才会返回null
             throw new InterruptedException();
         }
     }
@@ -893,7 +893,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     public boolean offer(E o, long timeout, TimeUnit unit)
         throws InterruptedException {
         if (o == null) throw new NullPointerException();
-        if (transferer.transfer(o, true, unit.toNanos(timeout)) != null)
+        if (transferer.transfer(o, true, unit.toNanos(timeout)) != null)    // timed为true代表会超时等待,会自旋
             return true;
         if (!Thread.interrupted())
             return false;
@@ -911,7 +911,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      */
     public boolean offer(E e) {
         if (e == null) throw new NullPointerException();
-        return transferer.transfer(e, true, 0) != null;
+        return transferer.transfer(e, true, 0) != null;     // offer方法的time为true,但超时时间为0,表示不会自旋
     }
 
     /**

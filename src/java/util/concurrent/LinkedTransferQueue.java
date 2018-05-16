@@ -44,11 +44,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * An unbounded {@link TransferQueue} based on linked nodes.
+ * An unbounded {@link TransferQueue} based on linked nodes.            // 没有上限的链表
  * This queue orders elements FIFO (first-in-first-out) with respect
  * to any given producer.  The <em>head</em> of the queue is that
  * element that has been on the queue the longest time for some
- * producer.  The <em>tail</em> of the queue is that element that has
+ * producer.  The <em>tail</em> of the queue is that element that has   // 先进先出,也是从tail插入,从head出队
  * been on the queue the shortest time for some producer.
  *
  * <p>Beware that, unlike in most collections, the {@code size} method
@@ -82,7 +82,7 @@ import java.util.concurrent.locks.LockSupport;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞队列要系统再看下吧.
+public class LinkedTransferQueue<E> extends AbstractQueue<E>    // LinkedTransferQueue是没有上界的.
     implements TransferQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -3223113410248163686L;
 
@@ -408,7 +408,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
      */
 
     /** True if on multiprocessor */
-    private static final boolean MP =
+    private static final boolean MP =   // 是否是多核处理器
         Runtime.getRuntime().availableProcessors() > 1;
 
     /**
@@ -419,7 +419,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
      * derived -- it works pretty well across a variety of processors,
      * numbers of CPUs, and OSes.
      */
-    private static final int FRONT_SPINS   = 1 << 7;
+    private static final int FRONT_SPINS   = 1 << 7;    // 2^7
 
     /**
      * The number of times to spin before blocking when a node is
@@ -1095,11 +1095,11 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
     /**
      * Transfers the element to a consumer, waiting if necessary to do so.
      *
-     * <p>More precisely, transfers the specified element immediately
+     * <p>More precisely, transfers the specified element immediately   // 它的性能更好,在有线程等待时,避免出队和入队,直接手递手传递了.
      * if there exists a consumer already waiting to receive it (in
      * {@link #take} or timed {@link #poll(long,TimeUnit) poll}),
-     * else inserts the specified element at the tail of this queue
-     * and waits until the element is received by a consumer.
+     * else inserts the specified element at the tail of this queue     // 否则插入到队列尾部
+     * and waits until the element is received by a consumer.           // 会等待,一直到元素被消费了
      *
      * @throws NullPointerException if the specified element is null
      */
@@ -1118,8 +1118,8 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
      * if there exists a consumer already waiting to receive it (in
      * {@link #take} or timed {@link #poll(long,TimeUnit) poll}),
      * else inserts the specified element at the tail of this queue
-     * and waits until the element is received by a consumer,
-     * returning {@code false} if the specified wait time elapses
+     * and waits until the element is received by a consumer,           // 和上面方法相比就是,等待会有超时时间.
+     * returning {@code false} if the specified wait time elapses       // 超时了会移除对象的.
      * before the element can be transferred.
      *
      * @throws NullPointerException if the specified element is null
@@ -1133,7 +1133,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
         throw new InterruptedException();
     }
 
-    public E take() throws InterruptedException {
+    public E take() throws InterruptedException {               // take方法会一直阻塞等待获取到元素
         E e = xfer(null, false, SYNC, 0);
         if (e != null)
             return e;
@@ -1141,7 +1141,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
         throw new InterruptedException();
     }
 
-    public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public E poll(long timeout, TimeUnit unit) throws InterruptedException {    // 有超时时间的等待获取,没有元素就阻塞等待.
         E e = xfer(null, false, TIMED, unit.toNanos(timeout));
         if (e != null || !Thread.interrupted())
             return e;
@@ -1149,7 +1149,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
     }
 
     public E poll() {
-        return xfer(null, false, NOW, 0);
+        return xfer(null, false, NOW, 0);       // poll也是从队列获取元素,但是没有元素了,会立马返回null.
     }
 
     /**
@@ -1207,7 +1207,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>    // todo 阻塞�
 
     public E peek() {
         return firstDataItem();
-    }
+    }   // 每次都是返回第一个,没有就返回null.
 
     /**
      * Returns {@code true} if this queue contains no elements.

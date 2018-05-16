@@ -85,12 +85,12 @@ public abstract class SelectorProvider {
     }
 
     private static boolean loadProviderFromProperty() {
-        String cn = System.getProperty("java.nio.channels.spi.SelectorProvider");
+        String cn = System.getProperty("java.nio.channels.spi.SelectorProvider");   // 获取jvm启动参数,看看有没有指定
         if (cn == null)
             return false;
         try {
             Class<?> c = Class.forName(cn, true,
-                                       ClassLoader.getSystemClassLoader());
+                                       ClassLoader.getSystemClassLoader());         // SystemClassLoader尝试加载java.nio.channels.spi.SelectorProvider类
             provider = (SelectorProvider)c.newInstance();
             return true;
         } catch (ClassNotFoundException x) {
@@ -107,8 +107,8 @@ public abstract class SelectorProvider {
     private static boolean loadProviderAsService() {
 
         ServiceLoader<SelectorProvider> sl =
-            ServiceLoader.load(SelectorProvider.class,
-                               ClassLoader.getSystemClassLoader());
+            ServiceLoader.load(SelectorProvider.class,                  // 尝试加载SelectorProvider的扩展点
+                               ClassLoader.getSystemClassLoader());     // 类似于dubbo的扩展点加载: SPI机制.
         Iterator<SelectorProvider> i = sl.iterator();
         for (;;) {
             try {
@@ -168,11 +168,11 @@ public abstract class SelectorProvider {
             return AccessController.doPrivileged(
                 new PrivilegedAction<SelectorProvider>() {
                     public SelectorProvider run() {
-                            if (loadProviderFromProperty())
+                            if (loadProviderFromProperty())     // 看是否有指定jvm参数
                                 return provider;
-                            if (loadProviderAsService())
+                            if (loadProviderAsService())        // 看有没有指定spi,就是在META-INF中配置的.
                                 return provider;
-                            provider = sun.nio.ch.DefaultSelectorProvider.create();
+                            provider = sun.nio.ch.DefaultSelectorProvider.create();     // 创建默认的selector, jdk实现中windows和linux默认是不一样的.
                             return provider;
                         }
                     });

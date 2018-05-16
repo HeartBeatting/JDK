@@ -163,7 +163,7 @@ public abstract class SelectionKey {
     // -- Operation-set accessors --
 
     /**
-     * Retrieves this key's interest set.
+     * Retrieves this key's interest set.   // 检索这个key, 监听的set
      *
      * <p> It is guaranteed that the returned set will only contain operation
      * bits that are valid for this key's channel.
@@ -199,7 +199,7 @@ public abstract class SelectionKey {
     public abstract SelectionKey interestOps(int ops);
 
     /**
-     * Retrieves this key's ready-operation set.
+     * Retrieves this key's ready-operation set.    // 准备好的操作key
      *
      * <p> It is guaranteed that the returned set will only contain operation
      * bits that are valid for this key's channel.  </p>
@@ -220,12 +220,12 @@ public abstract class SelectionKey {
      * <p> Suppose that a selection key's interest set contains
      * <tt>OP_READ</tt> at the start of a <a
      * href="Selector.html#selop">selection operation</a>.  If the selector
-     * detects that the corresponding channel is ready for reading, has reached
-     * end-of-stream, has been remotely shut down for further reading, or has
+     * detects that the corresponding channel is ready for reading, has reached     // 流的尾部, 或者远程写的流关闭可以读取,或者远程阻塞,都会导致OP_READ设置
+     * end-of-stream, has been remotely shut down for further reading, or has       // 表示可读取的
      * an error pending, then it will add <tt>OP_READ</tt> to the key's
      * ready-operation set and add the key to its selected-key&nbsp;set.  </p>
      */
-    public static final int OP_READ = 1 << 0;
+    public static final int OP_READ = 1 << 0;                                       // 用不同的位, 表示OP操作类型, 位直接用位运算, 很快就能知道是否是OP_READ,效率高!
 
     /**
      * Operation-set bit for write operations.  </p>
@@ -234,7 +234,7 @@ public abstract class SelectionKey {
      * <tt>OP_WRITE</tt> at the start of a <a
      * href="Selector.html#selop">selection operation</a>.  If the selector
      * detects that the corresponding channel is ready for writing, has been
-     * remotely shut down for further writing, or has an error pending, then it
+     * remotely shut down for further writing, or has an error pending, then it     // 这个的意思是指远程读操作关闭停止,允许进行写操作 (channel是支持读或写的, 不能同时进行读写吗?)
      * will add <tt>OP_WRITE</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
      */
@@ -264,7 +264,7 @@ public abstract class SelectionKey {
      * <tt>OP_ACCEPT</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
      */
-    public static final int OP_ACCEPT = 1 << 4;
+    public static final int OP_ACCEPT = 1 << 4;     // 四种: 读,写,连接,获取!
 
     /**
      * Tests whether this key's channel is ready for reading.
@@ -367,7 +367,7 @@ public abstract class SelectionKey {
 
     private static final AtomicReferenceFieldUpdater<SelectionKey,Object>
         attachmentUpdater = AtomicReferenceFieldUpdater.newUpdater(
-            SelectionKey.class, Object.class, "attachment"
+            SelectionKey.class, Object.class, "attachment"  // 将Object类型的attachment,可以作为原子操作.
         );
 
     /**

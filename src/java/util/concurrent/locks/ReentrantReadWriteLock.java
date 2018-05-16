@@ -480,7 +480,7 @@ public class ReentrantReadWriteLock
             Thread current = Thread.currentThread();
             int c = getState();
             if (exclusiveCount(c) != 0 &&
-                getExclusiveOwnerThread() != current)
+                getExclusiveOwnerThread() != current)   // 这里就要求如果有线程获取了写锁(独占锁), 必须是当前线程才能继续获取共享锁
                 return -1;
             int r = sharedCount(c);
             if (!readerShouldBlock() &&

@@ -858,13 +858,13 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             for (;;) {
                 final Node p = node.predecessor();
-                if (p == head && tryAcquire(arg)) {
-                    setHead(node);
-                    p.next = null; // help GC
+                if (p == head && tryAcquire(arg)) {     // 这里判断,必须是第一个节点,并且获取锁成功; 这里有个重要的就是还是要调用tryAcquire,去竞争锁 !!!
+                    setHead(node);                      // 才能更新头结点
+                    p.next = null; // help GC           // 下面就是返回结果,线程也就从阻塞操作恢复了
                     failed = false;
                     return interrupted;
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
+                if (shouldParkAfterFailedAcquire(p, node) &&    // 上面竞争锁失败或者不是头结点, 走到这里线程又会被阻塞!
                     parkAndCheckInterrupt())
                     interrupted = true;
             }

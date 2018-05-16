@@ -169,7 +169,7 @@ public class CyclicBarrier {
      */
     private void nextGeneration() {
         // signal completion of last generation     //通知上一个generation对应的所有等待线程
-        trip.signalAll();
+        trip.signalAll();                           // 这里是通知所有等待队列里的线程,都可以唤醒了. 但是condition等待队列是FIFO,线程还是都按顺序唤醒的.
         // set up next generation                   //重置count
         count = parties;
         generation = new Generation();              //新创建一个Generation
@@ -182,7 +182,7 @@ public class CyclicBarrier {
     private void breakBarrier() {
         generation.broken = true;   //这里设置为true,下面再通知所有线程,所有线程都能往下走,所有等待的线程都会抛出BrokenBarrierException
         count = parties;
-        trip.signalAll();
+        trip.signalAll();           // 这里
     }
 
     /**
@@ -192,7 +192,7 @@ public class CyclicBarrier {
         throws InterruptedException, BrokenBarrierException,    //barrier的主要功能
                TimeoutException {
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock();                                    // 这里要先获取锁,下面会调用lock对应condition的await方法,进入等待队列.
         try {
             final Generation g = generation;
 
@@ -210,9 +210,9 @@ public class CyclicBarrier {
                try {
                    final Runnable command = barrierCommand;
                    if (command != null)
-                       command.run();                   //这里是直接同步调用command,并没有重新起线程
-                   ranAction = true;
-                   nextGeneration();                    //创建新的Generation,可以循环使用
+                       command.run();                   // 这里是直接同步调用command,并没有重新起线程. ==> 注意,这里是先执行command,再在nextGeneration里唤醒所有其他线程的.
+                   ranAction = true;                    // true表示这里最后一个线程执行好了, 这个标记的办法蛮好的.
+                   nextGeneration();                    //创建新的Generation,可以循环使用. 方法里会trip.signalAll()通知所有线程.
                    return 0;
                } finally {
                    if (!ranAction)                      //这里其实是担心上面的command.run方法抛出异常了.
@@ -224,7 +224,7 @@ public class CyclicBarrier {
             for (;;) {
                 try {
                     if (!timed)
-                        trip.await();                   //这里调用await方法,就释放了可重入锁了,下一个线程也可以获取锁,调用这个方法了.
+                        trip.await();                   //这里调用await方法,就释放锁了. 线程被唤醒的时候,还必须竞争lock锁.
                     else if (nanos > 0L)
                         nanos = trip.awaitNanos(nanos);
                 } catch (InterruptedException ie) {
